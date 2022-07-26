@@ -1,0 +1,22 @@
+{
+	"compilerOptions": {
+		"baseUrl": ".",
+		"outDir": "dist",
+		"sourceMap": false,
+		"target": "ESNext",
+		"module": "ESNext",
+		"moduleResolution": "node",
+		"allowJs": false,
+		"strict": true,
+		"experimentalDecorators": true,
+		"resolveJsonModule": true,
+		"esModuleInterop": true,
+		"rootDir": ".",
+		"removeComments": true,
+		"types": ["node"],
+		"lib": ["ESNext", "DOM"], // vue/vetur needs this
+		"skipLibCheck": true,
+		"isolatedModules": true
+	},
+	"exclude": ["node_modules", "**/node_modules"]
+}

@@ -1,0 +1,11 @@
+{
+	"name": "@workbench/instance",
+	"version": "1.0.0",
+	"description": "",
+	"author": "Dominic Marx <dominic.marx@axians.de>",
+	"license": "ISC",
+	"dependencies": {
+		"directus": "workspace:^9.14.5",
+		"sqlite3": "^5.0.8"
+	}
+}

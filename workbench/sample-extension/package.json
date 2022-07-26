@@ -1,0 +1,11 @@
+{
+	"name": "@workbench/sample-extension",
+	"version": "1.0.0",
+	"keywords": [],
+	"author": "Dominic Marx <dominic.marx@axians.de>",
+	"license": "ISC",
+	"dependencies": {
+		"@directus/extensions-sdk": "workspace:^9.14.4",
+		"vue": "3.2.36"
+	}
+}
