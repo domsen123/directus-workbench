@@ -1,0 +1,25 @@
+{
+  "name": "directus-bree",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "Dominic Marx <dominic.marx@axians.de>",
+  "license": "ISC",
+  "dependencies": {
+    "@directus/extensions-sdk": "workspace:^9.14.4",
+    "@ladjs/graceful": "^3.0.2",
+    "bree": "^9.1.1",
+    "fast-glob": "^3.2.11",
+    "vue": "3.2.36"
+  },
+  "devDependencies": {
+    "@types/express": "4.17.13",
+    "@types/pino": "6.3.12",
+    "pino": "6.13.3",
+    "typescript": "^4.7.4"
+  }
+}

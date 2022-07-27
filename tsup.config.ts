@@ -35,10 +35,12 @@ rimraf.sync(distRoot);
 for (const extension of [...serverExtensions, ...rawExtensions]) {
 	const { extensionName, extensionType } = getNameAndType(extension);
 
+	const isMigrationOrJob = extension.includes('/jobs/') || extension.includes('/migrations/');
+
 	tsupConfig.push(
 		defineConfig({
 			entry: [extension],
-			outDir: join('workbench/_dist', extensionType, extensionName),
+			outDir: join('workbench/_dist', extensionType, isMigrationOrJob ? '' : extensionName),
 			splitting: false,
 			clean: true,
 			format: ['cjs'],
@@ -46,7 +48,7 @@ for (const extension of [...serverExtensions, ...rawExtensions]) {
 			legacyOutput: true,
 			noExternal: [],
 			minify: true,
-			// onSuccess: `cp -Rf ${distRoot}/* ${instanceExtensionsRoot}`,
+			onSuccess: `cp -Rf ${distRoot}/* ${instanceExtensionsRoot}`,
 		})
 	);
 }
