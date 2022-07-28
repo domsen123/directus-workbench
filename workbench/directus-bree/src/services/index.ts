@@ -1,1 +1,1 @@
-export * from './bree.service';
+export * from './service';

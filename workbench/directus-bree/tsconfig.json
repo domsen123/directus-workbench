@@ -11,13 +11,16 @@
 		"experimentalDecorators": true,
 		"resolveJsonModule": true,
 		"esModuleInterop": true,
-		"rootDir": ".",
 		"removeComments": true,
 		"types": ["node"],
 		"lib": ["ESNext", "DOM"], // vue/vetur needs this
 		"skipLibCheck": true,
 		"isolatedModules": true,
-		"jsx": "preserve"
+		"jsx": "preserve",
+		"paths": {
+			"~/*": ["src/*"]
+		}
 	},
+	// "include": ["app", "workbench"],
 	"exclude": ["node_modules", "**/node_modules"]
 }

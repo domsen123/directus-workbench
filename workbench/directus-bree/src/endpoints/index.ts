@@ -1,41 +1,28 @@
 import { defineEndpoint } from '@directus/extensions-sdk';
-import { BreeService } from '../services';
+import { Service } from '../services';
 import { BreeAction, BreeJob } from '../types';
 
 export default defineEndpoint({
 	id: 'bree',
 	handler: (router) => {
-		router.get('/jobs', async (req, res) => {
-			const bree: BreeService = req.app.get('bree');
-			const result = await bree.listJobs();
-			res.send(result);
-		});
+		router.put('/jobs/:uuid', async (req, res, next) => {
+			const bree: Service = req.app.get('bree');
 
-		router.get('/jobs/:jobName', async (req, res, next) => {
-			const jobName = req.params.jobName;
-			const bree: BreeService = req.app.get('bree');
-			try {
-				const result = await bree.getJobByName(jobName);
-				res.json(result);
-			} catch (e: any) {
-				next(e);
-			}
-		});
+			const uuid = req.params.uuid;
 
-		router.put('/jobs/:jobName', async (req, res, next) => {
-			const bree: BreeService = req.app.get('bree');
+			const job = await bree.dbGetItemByuuid(uuid);
+			if (!job) return res.status(404).send();
 
-			const jobName = req.params.jobName;
-			const cron: string = req.body.cron;
+			const jobName = job.name;
 			const action: BreeAction = req.body.action;
+			const cron: BreeAction = req.body.cron;
 
 			try {
-				await bree.checkJobName(jobName);
 				if (!['enable', 'disable', 'start', 'stop', 'restart', 'run'].includes(action)) {
 					throw new Error('Invalid action! Valid actions are: enable, disable, start, stop, restart');
 				}
 
-				const handler: Record<BreeAction, (jobName: string) => Promise<BreeJob>> = {
+				const handler: Record<BreeAction, (jobName: string) => Promise<BreeJob | undefined>> = {
 					enable: async (jobName: string) => await bree.enable(jobName, cron),
 					disable: async (jobName: string) => await bree.disable(jobName),
 					start: async (jobName: string) => await bree.start(jobName),
@@ -45,7 +32,9 @@ export default defineEndpoint({
 				};
 
 				const result = await handler[action](jobName);
-				res.json(result);
+				if (!result) return res.status(500).send();
+
+				return res.json(result);
 			} catch (e: any) {
 				next(e);
 			}

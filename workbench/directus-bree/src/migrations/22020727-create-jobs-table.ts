@@ -3,7 +3,7 @@ import type { Knex } from 'knex';
 const collection = 'bree_jobs';
 export const up = async (knex: Knex) => {
 	await knex.schema.createTable(collection, (table) => {
-		table.uuid('uuid').notNullable();
+		table.uuid('uuid').primary().notNullable();
 		table.string('name').notNullable();
 		table.string('path').notNullable();
 		table.string('status');
@@ -44,6 +44,16 @@ export const up = async (knex: Knex) => {
 		{
 			collection,
 			field: 'path',
+			interface: 'input',
+			display: 'raw',
+			width: 'full',
+			hidden: false,
+			required: true,
+			readonly: true,
+		},
+		{
+			collection,
+			field: 'cron',
 			interface: 'input',
 			display: 'raw',
 			width: 'full',

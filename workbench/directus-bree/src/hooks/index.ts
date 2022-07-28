@@ -1,10 +1,22 @@
+import { resolve } from 'path';
 import { defineHook } from '@directus/extensions-sdk';
-import { BreeService } from '../services';
+import { Service } from '../services';
 
-export default defineHook(({ init }, { logger, env, database }) => {
+export default defineHook(({ init, schedule }, { logger, env, database }) => {
+	const jobsRoot = resolve(env.EXTENSIONS_PATH, 'jobs');
+	const service = new Service({
+		env,
+		logger,
+		jobsRoot,
+		knex: database,
+	});
+
 	init('app.before', async ({ app }) => {
-		const bree = new BreeService(env, logger, database);
-		await bree.install();
-		app.set('bree', bree);
+		app.set('bree', service);
+		await service.checkHealth();
+	});
+
+	schedule('0 * * * *', async () => {
+		await service.checkHealth();
 	});
 });
