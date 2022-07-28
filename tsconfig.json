@@ -1,23 +1,20 @@
 {
 	"compilerOptions": {
-		"baseUrl": ".",
-		"outDir": "dist",
-		"sourceMap": false,
-		"target": "ESNext",
-		"module": "ESNext",
-		"moduleResolution": "node",
-		"allowJs": false,
+		"target": "esnext",
+		"module": "esnext",
 		"strict": true,
-		"experimentalDecorators": true,
-		"resolveJsonModule": true,
-		"esModuleInterop": true,
-		"rootDir": ".",
-		"removeComments": true,
-		"types": ["node"],
-		"lib": ["ESNext", "DOM"], // vue/vetur needs this
+		"jsx": "preserve",
+		"importHelpers": true,
 		"skipLibCheck": true,
-		"isolatedModules": true,
-		"jsx": "preserve"
+		"moduleResolution": "node",
+		"esModuleInterop": true,
+		"allowSyntheticDefaultImports": true,
+		"resolveJsonModule": true,
+		"sourceMap": true,
+		"baseUrl": ".",
+		"types": ["vite/client", "node"],
+		"lib": ["ESNext", "DOM"]
 	},
+	"include": ["workbench/**/src/**/*.ts", "workbench/**/src/**/*.vue", "app/src/**/*.ts", "app/src**/*.vue"],
 	"exclude": ["node_modules", "**/node_modules"]
 }

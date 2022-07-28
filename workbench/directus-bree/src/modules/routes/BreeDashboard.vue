@@ -68,7 +68,6 @@ import { API_URL, COLLECTION_NAME } from '../../constants';
 import { computed, defineComponent, ref } from 'vue';
 import type { Ref, ComputedRef, WritableComputedRef } from 'vue';
 import { BreeAction } from '../../types';
-//@ts-ignore
 import SearchInput from '@/views/private/components/search-input.vue';
 
 defineComponent({
@@ -111,7 +110,6 @@ const setJob = async (item: any, action: BreeAction) => {
 		url: `${API_URL}/${uuid}`,
 		data: { action, cron },
 	});
-	console.log(data);
 	updateLocalJob(data);
 };
 </script>
