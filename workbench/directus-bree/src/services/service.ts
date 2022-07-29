@@ -30,6 +30,14 @@ export class Service {
 			root: this.jobsRoot,
 			silenceRootCheckError: true,
 			jobs: [],
+			worker: {
+				argv: [this.knex],
+				env: this.env,
+				workerData: {
+					env: this.env,
+					knex: this.knex,
+				},
+			},
 		});
 
 		this.bree.on('worker created', async (name) => {
@@ -66,7 +74,6 @@ export class Service {
 	private dbGet = async (path: string): Promise<DBBreeJob | undefined> => {
 		return await this.knex<DBBreeJob>(COLLECTION_NAME).where('path', path).first();
 	};
-
 	private dbInsert = async (job: DBBreeJobUnsaved): Promise<void> => {
 		await this.knex<DBBreeJob>(COLLECTION_NAME).insert({
 			...job,
@@ -166,23 +173,27 @@ export class Service {
 		return jobFiles.find((f) => f.name === name);
 	};
 
-	private getJob = async (name: string, trimPath = false): Promise<BreeJob | undefined> => {
+	private getJob = async (name: string, trimPath = false): Promise<DBBreeJob | undefined> => {
 		const jobFile = await this.getFileJob(name);
 		if (!jobFile) return;
 
 		const jobStored = await this.dbGet(jobFile.path);
+		if (!jobStored) {
+			this.logger.error(`Job are not in Sync with Database`);
+			return;
+		}
+		if (trimPath) jobStored.path = this.trimPath(jobStored.path);
 
-		jobFile.cron = jobStored && jobStored.cron ? jobStored.cron : null;
-		if (trimPath) jobFile.path = this.trimPath(jobFile.path);
-
-		return jobFile;
+		return jobStored;
 	};
 
-	public enable = async (name: string, cron?: string): Promise<BreeJob | undefined> => {
+	public enable = async (name: string, cron?: string): Promise<DBBreeJob | undefined> => {
 		const job = await this.getJob(name);
 		const alreadyEnabled = this.bree.config.jobs.find((j) => j.name === name);
+
 		if (!job || alreadyEnabled) return;
 		this.logger.debug(`--| enabling job: ${name}`);
+
 		await this.bree.add({
 			name: job.name,
 			path: job.path,
@@ -190,13 +201,14 @@ export class Service {
 		});
 		const exists = await this.dbGet(job.path);
 		if (!exists) await this.dbInsert(job);
+
 		if (cron) await this.dbUpdate(job.path, { cron });
 		await this.dbSetStatus(job.path, 'enabled');
 
 		return this.getJob(name);
 	};
 
-	public disable = async (name: string): Promise<BreeJob | undefined> => {
+	public disable = async (name: string): Promise<DBBreeJob | undefined> => {
 		const job = await this.getJob(name);
 		const isEnabled = this.bree.config.jobs.find((j) => j.name === name);
 		if (!job || !isEnabled) return;
@@ -208,7 +220,7 @@ export class Service {
 		return this.getJob(name);
 	};
 
-	public start = async (name: string): Promise<BreeJob | undefined> => {
+	public start = async (name: string): Promise<DBBreeJob | undefined> => {
 		const job = await this.getJob(name);
 		if (!job) return;
 		this.logger.debug(`--| starting job: ${name}`);
@@ -219,7 +231,7 @@ export class Service {
 		return this.getJob(name);
 	};
 
-	public stop = async (name: string): Promise<BreeJob | undefined> => {
+	public stop = async (name: string): Promise<DBBreeJob | undefined> => {
 		const job = await this.getJob(name);
 		if (!job) return;
 		this.logger.debug(`--| stopping job: ${name}`);
@@ -230,18 +242,17 @@ export class Service {
 		return this.getJob(name);
 	};
 
-	public run = async (name: string): Promise<BreeJob | undefined> => {
+	public run = async (name: string): Promise<DBBreeJob | undefined> => {
 		const job = await this.getJob(name);
 		if (!job) return;
 		this.logger.debug(`--| running job: ${name}`);
 
 		await this.bree.run(name);
-		await this.dbSetStatus(job.path, 'running');
 
 		return this.getJob(name);
 	};
 
-	public restart = async (name: string): Promise<BreeJob | undefined> => {
+	public restart = async (name: string): Promise<DBBreeJob | undefined> => {
 		const job = await this.getJob(name);
 		if (!job) return;
 		this.logger.debug(`--| restarting job: ${name}`);

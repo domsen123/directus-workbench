@@ -5,10 +5,10 @@
 			<table class="v-bree-table">
 				<thead>
 					<tr>
-						<td v-for="header in headers" :key="header.value">
+						<td v-for="(header, index) in headers" :key="header.value" :width="index > 0 ? 150 : undefined">
 							<span>{{ header.text }}</span>
 						</td>
-						<td>
+						<td width="150">
 							<span>Actions</span>
 						</td>
 					</tr>
@@ -25,12 +25,10 @@
 								<span class="badge" :class="item[header.value]">{{ item[header.value] }}</span>
 							</template>
 							<template v-else-if="header.value === 'cron'">
-								<input
-									v-if="item['status'] === 'disabled'"
-									v-model="item[header.value]"
-									class="cron-input"
-									type="text"
-								/>
+								<form v-if="item['status'] === 'disabled'" @submit.prevent="setJob(item, 'enable')">
+									<input v-model="item[header.value]" class="cron-input" type="text" />
+									<input type="submit" hidden />
+								</form>
 								<span v-else class="cron" :class="{ muted: !item[header.value] }">
 									{{ item[header.value] ?? 'n/a' }}
 								</span>
@@ -49,25 +47,56 @@
 										Enable
 									</button>
 								</template>
+								<template v-if="item.status === 'enabled'">
+									<button
+										class="action-btn"
+										type="button"
+										:disabled="!item.cron || item.cron.length === 0"
+										@click="setJob(item, 'disable')"
+									>
+										Disable
+									</button>
+									<button
+										class="action-btn"
+										type="button"
+										:disabled="!item.cron || item.cron.length === 0"
+										@click="setJob(item, 'start')"
+									>
+										Schedule
+									</button>
+								</template>
+								<template v-if="item.status === 'waiting'">
+									<button
+										class="action-btn"
+										type="button"
+										:disabled="!item.cron || item.cron.length === 0"
+										@click="setJob(item, 'disable')"
+									>
+										Disable
+									</button>
+									<button
+										class="action-btn"
+										type="button"
+										:disabled="!item.cron || item.cron.length === 0"
+										@click="setJob(item, 'run')"
+									>
+										Run
+									</button>
+								</template>
 							</div>
 						</td>
 					</tr>
 				</tbody>
 			</table>
 		</div>
-		<!-- <pre v-text="headers" /> -->
-		<pre v-text="items" />
-		<!-- <pre v-text="items" /> -->
 	</private-view>
 </template>
 
 <script lang="ts" setup>
-import { useLayout, useApi, useItems, useCollection } from '@directus/extensions-sdk';
-import type { Query } from '@directus/shared/types';
+import { useApi, useItems, useCollection } from '@directus/extensions-sdk';
 import { API_URL, COLLECTION_NAME } from '../../constants';
 import { computed, defineComponent, ref } from 'vue';
-import type { Ref, ComputedRef, WritableComputedRef } from 'vue';
-import { BreeAction } from '../../types';
+import type { BreeAction, DBBreeJob } from '../../types';
 import SearchInput from '@/views/private/components/search-input.vue';
 
 defineComponent({
@@ -85,27 +114,22 @@ const query = {
 	filter: ref<any>(),
 };
 const collection = useCollection(collectionName);
-const _items = useItems(collectionName, query);
-
-const items = computed({
-	get: () => _items.items.value,
-	set: (v) => (_items.items.value = v),
-});
+const { items } = useItems(collectionName, query);
 
 const headers = computed(() =>
 	collection.fields.value
 		.filter((field) => !field.meta?.hidden && field.field !== 'path')
 		.map((field) => ({ text: field.name, value: field.field }))
 );
-const updateLocalJob = (item: any) => {
-	const index = items.value.findIndex((i) => i.path === item.path);
+const updateLocalJob = (item: DBBreeJob) => {
+	const index = items.value.findIndex((i) => i.uuid === item.uuid);
 	if (index !== -1) {
 		items.value[index] = item;
 	}
 };
-const setJob = async (item: any, action: BreeAction) => {
+const setJob = async (item: Record<string, any>, action: BreeAction) => {
 	const { cron, uuid } = item;
-	const { data } = await api.request({
+	const { data } = await api.request<DBBreeJob>({
 		method: 'PUT',
 		url: `${API_URL}/${uuid}`,
 		data: { action, cron },
@@ -170,15 +194,17 @@ table tbody tr td span.muted {
 }
 table tbody tr td .display-flex {
 	display: flex;
-	> * {
-		margin-right: 2px;
+	> *:not(:last-child) {
+		margin-right: 5px;
 	}
 }
 table tbody tr td input.cron-input {
 	border: 1px solid #e1e1e1;
 }
 button.action-btn {
-	font-size: 12px;
+	font-size: 10px;
+	font-weight: 600;
+	text-transform: uppercase;
 	&:not(:disabled):hover {
 		text-decoration: underline;
 	}
