@@ -6,6 +6,7 @@
 	"license": "ISC",
 	"dependencies": {
 		"directus": "workspace:^9.14.5",
+		"install": "^0.13.0",
 		"sqlite3": "^5.0.8"
 	}
 }

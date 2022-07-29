@@ -39,6 +39,7 @@
 	"dependencies": {
 		"@directus/drive": "workspace:*",
 		"@google-cloud/storage": "^5.8.5",
+		"install": "^0.13.0",
 		"lodash": "4.17.21",
 		"normalize-path": "^3.0.0"
 	},

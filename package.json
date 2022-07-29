@@ -19,7 +19,7 @@
 		"cli": "cross-env NODE_ENV=development SERVE_APP=false DOTENV_CONFIG_PATH=api/.env ts-node -r dotenv/config --script-mode --transpile-only api/src/cli/run.ts",
 		"workbench:bootstrap": "rm -rf ./workbench/_instance/data.db && pnpm -r --filter @workbench/instance exec -- npx directus bootstrap",
 		"workbench:reset": "rm -rf app && rm -rf api && rm -rf packages && git checkout main -- api && git checkout main -- app && git checkout main -- packages && pnpm workbench:clean",
-		"workbench:clean": "pnpm -r exec -- rm -rf node_modules && rm -rf node_modules && rm -rf pnpm-lock.yaml && pnpm i",
+		"workbench:clean": "pnpm -r exec -- rm -rf node_modules && rm -rf node_modules && rm -rf pnpm-lock.yaml && pnpm i && pnpm -r build",
 		"workbench:build": "tsup",
 		"workbench:dev": "$_ run workbench:dev:server & $_ run workbench:dev:client",
 		"workbench:dev:server": "pnpm -r --filter @workbench/instance exec -- npx directus start",

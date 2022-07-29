@@ -6,6 +6,7 @@
 	"license": "ISC",
 	"dependencies": {
 		"@directus/extensions-sdk": "workspace:^9.14.4",
+		"install": "^0.13.0",
 		"vue": "3.2.36"
 	}
 }
