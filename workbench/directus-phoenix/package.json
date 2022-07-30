@@ -1,0 +1,19 @@
+{
+  "name": "directus-phoenix",
+  "version": "1.0.0",
+  "description": "",
+  "keywords": [],
+  "author": "Dominic Marx <dominic.marx@axians.de>",
+  "license": "ISC",
+  "dependencies": {
+    "@directus/extensions-sdk": "workspace:^9.14.4",
+    "@directus/sdk": "^10.1.2",
+    "alasql": "^1.7.3",
+    "knex": "2.2.0",
+    "react-native-fetch-blob": "^0.10.8",
+    "tedious": "^15.0.0"
+  },
+  "devDependencies": {
+    "@types/pino": "6.3.12"
+  }
+}

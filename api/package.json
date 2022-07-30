@@ -120,7 +120,6 @@
 		"graphql-compose": "^9.0.8",
 		"helmet": "^4.6.0",
 		"inquirer": "^8.2.4",
-		"install": "^0.13.0",
 		"ioredis": "^4.27.6",
 		"joi": "^17.6.0",
 		"js-yaml": "^4.1.0",

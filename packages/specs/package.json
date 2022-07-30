@@ -49,7 +49,6 @@
 		"swagger-ui-watcher": "2.1.12"
 	},
 	"dependencies": {
-		"install": "^0.13.0",
 		"openapi3-ts": "^2.0.1"
 	}
 }

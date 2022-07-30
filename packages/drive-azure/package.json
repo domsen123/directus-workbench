@@ -40,7 +40,6 @@
 	"dependencies": {
 		"@azure/storage-blob": "^12.6.0",
 		"@directus/drive": "workspace:*",
-		"install": "^0.13.0",
 		"normalize-path": "^3.0.0"
 	},
 	"devDependencies": {

@@ -10,8 +10,12 @@ const tsupConfig: any[] = [];
 
 const getNameAndType = (extension: string) => {
 	const _e = extension.split('/workbench/')[1];
-	const extensionName = _e.split('/')[0];
-	const extensionType = _e.split('/')[2];
+	const parts = _e.split('/');
+	let extensionName = parts[0];
+	const extensionType = parts[2];
+	if (parts.length > 4) {
+		extensionName = `${extensionName}-${parts[3]}`;
+	}
 	const extensionTypeSingular = extensionType.slice(0, -1);
 	return { extensionName: `${extensionName}-${extensionTypeSingular}`, extensionType };
 };
@@ -28,14 +32,34 @@ const rawExtensionsCollection = '(jobs|migrations)';
 
 const serverExtensions = await fg(join(workbenchExtensionsRoot, '/[!_]*/src/', serverExtensionsCollection, 'index.ts'));
 const rawExtensions = await fg(join(workbenchExtensionsRoot, '/[!_]*/src/', rawExtensionsCollection, '*.ts'));
-const clientExtensions = await fg(join(workbenchExtensionsRoot, '/[!_]*/src/', clientExtensionsCollection, 'index.ts'));
+const clientExtensions = await fg([
+	join(workbenchExtensionsRoot, '/[!_]*/src/', clientExtensionsCollection, 'index.ts'),
+	join(workbenchExtensionsRoot, '/[!_]*/src/', clientExtensionsCollection, '*/index.ts'),
+]);
 
 rimraf.sync(distRoot);
+
+let additionalConfig: undefined | Record<string, any>;
 
 for (const extension of [...serverExtensions, ...rawExtensions]) {
 	const { extensionName, extensionType } = getNameAndType(extension);
 
 	const isMigrationOrJob = extension.includes('/jobs/') || extension.includes('/migrations/');
+
+	// if (!additionalConfig) {
+	// 	const tsupExtendPath = join(extension.split('/src/')[0], 'tsup.config.ts');
+	// 	const tsupConfigExists = await fg(tsupExtendPath);
+	// 	if (tsupConfigExists.length === 1) {
+	// 		const importPath = tsupConfigExists[0].replace('.ts', '').replace(cwd, '.');
+	// 		console.log(importPath);
+	// 		const { default: cfg } = await import(importPath);
+	// 		additionalConfig = cfg;
+	// 	} else {
+	// 		additionalConfig = {};
+	// 	}
+	// }
+
+	// console.log(additionalConfig);
 
 	tsupConfig.push(
 		defineConfig({
@@ -49,6 +73,7 @@ for (const extension of [...serverExtensions, ...rawExtensions]) {
 			noExternal: [],
 			minify: true,
 			onSuccess: `cp -Rf ${distRoot}/* ${instanceExtensionsRoot}`,
+			external: [/knex/, /alasql/],
 		})
 	);
 }

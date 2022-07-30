@@ -40,7 +40,6 @@
 	"dependencies": {
 		"@directus/drive": "workspace:*",
 		"aws-sdk": "^2.928.0",
-		"install": "^0.13.0",
 		"normalize-path": "^3.0.0"
 	},
 	"devDependencies": {

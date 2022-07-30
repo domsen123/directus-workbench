@@ -1,1 +1,0 @@
-"use strict";var e=require("worker_threads");(async()=>(await new Promise(o=>{console.log("SEARCHING EXTENSIONS_PATH"),setTimeout(()=>{console.log(`found: ${e.workerData.env.EXTENSIONS_PATH}`),o(1)},5e3)}),e.parentPort?e.parentPort.postMessage("done"):process.exit(0)))();
