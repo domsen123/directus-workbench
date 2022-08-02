@@ -187,7 +187,7 @@ export class Service {
 		return jobStored;
 	};
 
-	public enable = async (name: string, cron?: string): Promise<DBBreeJob | undefined> => {
+	public enable = async (name: string, cron?: string, options: any = {}): Promise<DBBreeJob | undefined> => {
 		const job = await this.getJob(name);
 		const alreadyEnabled = this.bree.config.jobs.find((j) => j.name === name);
 
@@ -198,6 +198,7 @@ export class Service {
 			name: job.name,
 			path: job.path,
 			cron: cron ?? job.cron ?? '',
+			...options,
 		});
 		const exists = await this.dbGet(job.path);
 		if (!exists) await this.dbInsert(job);

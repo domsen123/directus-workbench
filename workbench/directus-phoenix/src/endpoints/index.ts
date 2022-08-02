@@ -6,7 +6,7 @@ export default defineEndpoint({
 	handler: (router, { database, logger }) => {
 		router.put('/:uuid', async (req, res) => {
 			const uuid = req.params.uuid;
-			const service = new PhoenixService(database, logger);
+			const service = new PhoenixService(database, logger, req.app.get('bree'));
 			const result = await service.start(uuid);
 			res.json(result);
 		});

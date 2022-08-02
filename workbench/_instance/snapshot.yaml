@@ -1,0 +1,2137 @@
+version: 1
+directus: 9.14.5
+collections:
+  - collection: bree_jobs
+    meta:
+      accountability: null
+      archive_app_filter: false
+      archive_field: null
+      archive_value: null
+      collapse: closed
+      collection: bree_jobs
+      color: null
+      display_template: null
+      group: null
+      hidden: true
+      icon: null
+      item_duplication_fields: null
+      note: null
+      singleton: false
+      sort: null
+      sort_field: null
+      translations: null
+      unarchive_value: null
+    schema: null
+  - collection: external_connections
+    meta:
+      accountability: all
+      archive_app_filter: true
+      archive_field: null
+      archive_value: null
+      collapse: open
+      collection: external_connections
+      color: null
+      display_template: null
+      group: null
+      hidden: false
+      icon: null
+      item_duplication_fields: null
+      note: null
+      singleton: false
+      sort: 2
+      sort_field: null
+      translations: null
+      unarchive_value: null
+    schema:
+      name: external_connections
+      sql: >-
+        CREATE TABLE "external_connections" (`uuid` char(36) NOT NULL,
+        `user_created` char(36) NULL, `date_created` datetime NULL,
+        `user_updated` char(36) NULL, `date_updated` datetime NULL, `title`
+        varchar(255) NULL, `host` varchar(255) NULL, `port` integer NULL,
+        `service_account` char(36) NULL, `driver` varchar(255) null, PRIMARY KEY
+        (`uuid`), CONSTRAINT `external_connections_user_created_foreign` FOREIGN
+        KEY (`user_created`) REFERENCES `directus_users` (`id`), CONSTRAINT
+        `external_connections_user_updated_foreign` FOREIGN KEY (`user_updated`)
+        REFERENCES `directus_users` (`id`), CONSTRAINT
+        `external_connections_service_account_foreign` FOREIGN KEY
+        (`service_account`) REFERENCES `service_accounts` (`uuid`) ON DELETE SET
+        NULL)
+  - collection: phoenix
+    meta:
+      accountability: null
+      archive_app_filter: false
+      archive_field: null
+      archive_value: null
+      collapse: open
+      collection: phoenix
+      color: null
+      display_template: null
+      group: null
+      hidden: false
+      icon: null
+      item_duplication_fields: null
+      note: null
+      singleton: false
+      sort: 1
+      sort_field: null
+      translations: null
+      unarchive_value: null
+    schema:
+      name: phoenix
+      sql: >-
+        CREATE TABLE "phoenix" (`uuid` char(36) NOT NULL, `user_created`
+        char(36) NULL, `date_created` datetime NULL, `user_updated` char(36)
+        NULL, `date_updated` datetime NULL, `connection_alpha` char(36) NULL,
+        `connection_omega` char(36) NULL, `database_alpha` varchar(255) NULL,
+        `database_omega` varchar(255) NULL, `fields_alpha` json NULL,
+        `fields_omega` json NULL DEFAULT null, `condition_alpha` text NULL,
+        `condition_omega` text NULL DEFAULT null, `linked_name_alpha`
+        varchar(255) NULL, `linked_name_omega` varchar(255) NULL DEFAULT null,
+        `advanced_query_alpha` text NULL, `advanced_query_omega` text NULL
+        DEFAULT null, `advanced_mode` boolean NULL, `identifier_field`
+        varchar(255) NULL, `distinct_field` varchar(255) NULL, PRIMARY KEY
+        (`uuid`), CONSTRAINT `phoenix_user_created_foreign` FOREIGN KEY
+        (`user_created`) REFERENCES `directus_users` (`id`), CONSTRAINT
+        `phoenix_user_updated_foreign` FOREIGN KEY (`user_updated`) REFERENCES
+        `directus_users` (`id`), CONSTRAINT `phoenix_connection_alpha_foreign`
+        FOREIGN KEY (`connection_alpha`) REFERENCES `external_connections`
+        (`uuid`) ON DELETE SET NULL, CONSTRAINT
+        `phoenix_connection_omega_foreign` FOREIGN KEY (`connection_omega`)
+        REFERENCES `external_connections` (`uuid`) ON DELETE SET NULL)
+  - collection: service_accounts
+    meta:
+      accountability: all
+      archive_app_filter: true
+      archive_field: null
+      archive_value: null
+      collapse: open
+      collection: service_accounts
+      color: null
+      display_template: null
+      group: null
+      hidden: false
+      icon: null
+      item_duplication_fields: null
+      note: null
+      singleton: false
+      sort: 3
+      sort_field: null
+      translations: null
+      unarchive_value: null
+    schema:
+      name: service_accounts
+      sql: >-
+        CREATE TABLE "service_accounts" (`uuid` char(36) NOT NULL,
+        `user_created` char(36) NULL, `date_created` datetime NULL,
+        `user_updated` char(36) NULL, `date_updated` datetime NULL, `username`
+        varchar(255) null, `password` varchar(255) null, `expires_at` datetime
+        null, `title` varchar(255) null, PRIMARY KEY (`uuid`), CONSTRAINT
+        `service_accounts_user_created_foreign` FOREIGN KEY (`user_created`)
+        REFERENCES `directus_users` (`id`), CONSTRAINT
+        `service_accounts_user_updated_foreign` FOREIGN KEY (`user_updated`)
+        REFERENCES `directus_users` (`id`))
+fields:
+  - collection: external_connections
+    field: date_created
+    meta:
+      collection: external_connections
+      conditions: null
+      display: datetime
+      display_options:
+        relative: true
+      field: date_created
+      group: null
+      hidden: true
+      interface: datetime
+      note: null
+      options: null
+      readonly: true
+      required: false
+      sort: 3
+      special:
+        - cast-timestamp
+        - date-created
+      translations: null
+      validation: null
+      validation_message: null
+      width: half
+    schema:
+      data_type: datetime
+      default_value: null
+      foreign_key_column: null
+      foreign_key_table: null
+      generation_expression: null
+      has_auto_increment: false
+      is_generated: false
+      is_nullable: true
+      is_primary_key: false
+      is_unique: false
+      max_length: null
+      name: date_created
+      numeric_precision: null
+      numeric_scale: null
+      table: external_connections
+    type: timestamp
+  - collection: external_connections
+    field: date_updated
+    meta:
+      collection: external_connections
+      conditions: null
+      display: datetime
+      display_options:
+        relative: true
+      field: date_updated
+      group: null
+      hidden: true
+      interface: datetime
+      note: null
+      options: null
+      readonly: true
+      required: false
+      sort: 5
+      special:
+        - cast-timestamp
+        - date-updated
+      translations: null
+      validation: null
+      validation_message: null
+      width: half
+    schema:
+      data_type: datetime
+      default_value: null
+      foreign_key_column: null
+      foreign_key_table: null
+      generation_expression: null
+      has_auto_increment: false
+      is_generated: false
+      is_nullable: true
+      is_primary_key: false
+      is_unique: false
+      max_length: null
+      name: date_updated
+      numeric_precision: null
+      numeric_scale: null
+      table: external_connections
+    type: timestamp
+  - collection: external_connections
+    field: driver
+    meta:
+      collection: external_connections
+      conditions: null
+      display: raw
+      display_options: null
+      field: driver
+      group: null
+      hidden: false
+      interface: select-dropdown
+      note: null
+      options:
+        choices:
+          - text: Microsoft SQL Server
+            value: mssql
+          - text: My SQL
+            value: mysql
+          - text: PostgreSQL
+            value: postgres
+      readonly: false
+      required: true
+      sort: 7
+      special: null
+      translations: null
+      validation: null
+      validation_message: null
+      width: full
+    schema:
+      data_type: varchar
+      default_value: null
+      foreign_key_column: null
+      foreign_key_table: null
+      generation_expression: null
+      has_auto_increment: false
+      is_generated: false
+      is_nullable: true
+      is_primary_key: false
+      is_unique: false
+      max_length: 255
+      name: driver
+      numeric_precision: null
+      numeric_scale: null
+      table: external_connections
+    type: string
+  - collection: external_connections
+    field: host
+    meta:
+      collection: external_connections
+      conditions: null
+      display: raw
+      display_options: null
+      field: host
+      group: null
+      hidden: false
+      interface: input
+      note: null
+      options: null
+      readonly: false
+      required: true
+      sort: 8
+      special: null
+      translations: null
+      validation: null
+      validation_message: null
+      width: half
+    schema:
+      data_type: varchar
+      default_value: null
+      foreign_key_column: null
+      foreign_key_table: null
+      generation_expression: null
+      has_auto_increment: false
+      is_generated: false
+      is_nullable: true
+      is_primary_key: false
+      is_unique: false
+      max_length: 255
+      name: host
+      numeric_precision: null
+      numeric_scale: null
+      table: external_connections
+    type: string
+  - collection: external_connections
+    field: port
+    meta:
+      collection: external_connections
+      conditions: null
+      display: raw
+      display_options: null
+      field: port
+      group: null
+      hidden: false
+      interface: input
+      note: null
+      options: null
+      readonly: false
+      required: true
+      sort: 9
+      special: null
+      translations: null
+      validation: null
+      validation_message: null
+      width: half
+    schema:
+      data_type: integer
+      default_value: null
+      foreign_key_column: null
+      foreign_key_table: null
+      generation_expression: null
+      has_auto_increment: false
+      is_generated: false
+      is_nullable: true
+      is_primary_key: false
+      is_unique: false
+      max_length: null
+      name: port
+      numeric_precision: null
+      numeric_scale: null
+      table: external_connections
+    type: integer
+  - collection: external_connections
+    field: service_account
+    meta:
+      collection: external_connections
+      conditions: null
+      display: related-values
+      display_options:
+        template: '{{username}}'
+      field: service_account
+      group: null
+      hidden: false
+      interface: select-dropdown-m2o
+      note: null
+      options:
+        template: '{{username}}'
+      readonly: false
+      required: true
+      sort: 10
+      special:
+        - m2o
+      translations: null
+      validation: null
+      validation_message: null
+      width: full
+    schema:
+      data_type: char
+      default_value: null
+      foreign_key_column: uuid
+      foreign_key_table: service_accounts
+      generation_expression: null
+      has_auto_increment: false
+      is_generated: false
+      is_nullable: true
+      is_primary_key: false
+      is_unique: false
+      max_length: 36
+      name: service_account
+      numeric_precision: null
+      numeric_scale: null
+      table: external_connections
+    type: string
+  - collection: external_connections
+    field: title
+    meta:
+      collection: external_connections
+      conditions: null
+      display: raw
+      display_options: null
+      field: title
+      group: null
+      hidden: false
+      interface: input
+      note: null
+      options: null
+      readonly: false
+      required: true
+      sort: 6
+      special: null
+      translations: null
+      validation: null
+      validation_message: null
+      width: full
+    schema:
+      data_type: varchar
+      default_value: null
+      foreign_key_column: null
+      foreign_key_table: null
+      generation_expression: null
+      has_auto_increment: false
+      is_generated: false
+      is_nullable: true
+      is_primary_key: false
+      is_unique: false
+      max_length: 255
+      name: title
+      numeric_precision: null
+      numeric_scale: null
+      table: external_connections
+    type: string
+  - collection: external_connections
+    field: user_created
+    meta:
+      collection: external_connections
+      conditions: null
+      display: user
+      display_options: null
+      field: user_created
+      group: null
+      hidden: true
+      interface: select-dropdown-m2o
+      note: null
+      options:
+        template: '{{avatar.$thumbnail}} {{first_name}} {{last_name}}'
+      readonly: true
+      required: false
+      sort: 2
+      special:
+        - user-created
+      translations: null
+      validation: null
+      validation_message: null
+      width: half
+    schema:
+      data_type: char
+      default_value: null
+      foreign_key_column: id
+      foreign_key_table: directus_users
+      generation_expression: null
+      has_auto_increment: false
+      is_generated: false
+      is_nullable: true
+      is_primary_key: false
+      is_unique: false
+      max_length: 36
+      name: user_created
+      numeric_precision: null
+      numeric_scale: null
+      table: external_connections
+    type: string
+  - collection: external_connections
+    field: user_updated
+    meta:
+      collection: external_connections
+      conditions: null
+      display: user
+      display_options: null
+      field: user_updated
+      group: null
+      hidden: true
+      interface: select-dropdown-m2o
+      note: null
+      options:
+        template: '{{avatar.$thumbnail}} {{first_name}} {{last_name}}'
+      readonly: true
+      required: false
+      sort: 4
+      special:
+        - user-updated
+      translations: null
+      validation: null
+      validation_message: null
+      width: half
+    schema:
+      data_type: char
+      default_value: null
+      foreign_key_column: id
+      foreign_key_table: directus_users
+      generation_expression: null
+      has_auto_increment: false
+      is_generated: false
+      is_nullable: true
+      is_primary_key: false
+      is_unique: false
+      max_length: 36
+      name: user_updated
+      numeric_precision: null
+      numeric_scale: null
+      table: external_connections
+    type: string
+  - collection: external_connections
+    field: uuid
+    meta:
+      collection: external_connections
+      conditions: null
+      display: null
+      display_options: null
+      field: uuid
+      group: null
+      hidden: true
+      interface: input
+      note: null
+      options: null
+      readonly: true
+      required: false
+      sort: 1
+      special:
+        - uuid
+      translations: null
+      validation: null
+      validation_message: null
+      width: full
+    schema:
+      data_type: char
+      default_value: null
+      foreign_key_column: null
+      foreign_key_table: null
+      generation_expression: null
+      has_auto_increment: false
+      is_generated: false
+      is_nullable: false
+      is_primary_key: true
+      is_unique: true
+      max_length: 36
+      name: uuid
+      numeric_precision: null
+      numeric_scale: null
+      table: external_connections
+    type: uuid
+  - collection: phoenix
+    field: advanced_mode
+    meta:
+      collection: phoenix
+      conditions: null
+      display: boolean
+      display_options: null
+      field: advanced_mode
+      group: null
+      hidden: false
+      interface: boolean
+      note: null
+      options: null
+      readonly: false
+      required: false
+      sort: 6
+      special:
+        - cast-boolean
+      translations: null
+      validation: null
+      validation_message: null
+      width: full
+    schema:
+      data_type: boolean
+      default_value: null
+      foreign_key_column: null
+      foreign_key_table: null
+      generation_expression: null
+      has_auto_increment: false
+      is_generated: false
+      is_nullable: true
+      is_primary_key: false
+      is_unique: false
+      max_length: null
+      name: advanced_mode
+      numeric_precision: null
+      numeric_scale: null
+      table: phoenix
+    type: boolean
+  - collection: phoenix
+    field: advanced_query_alpha
+    meta:
+      collection: phoenix
+      conditions:
+        - name: Is Advanced Mode
+          rule:
+            _and:
+              - advanced_mode:
+                  _eq: true
+          options:
+            lineNumber: true
+            lineWrapping: false
+            template: null
+          hidden: false
+          required: true
+        - name: Is Not Advanced Mode
+          rule:
+            _and:
+              - advanced_mode:
+                  _eq: null
+          hidden: true
+          options:
+            lineNumber: true
+            lineWrapping: false
+            template: null
+      display: null
+      display_options: null
+      field: advanced_query_alpha
+      group: null
+      hidden: false
+      interface: input-code
+      note: null
+      options:
+        language: sql
+      readonly: false
+      required: false
+      sort: 19
+      special: null
+      translations: null
+      validation: null
+      validation_message: null
+      width: full
+    schema:
+      data_type: text
+      default_value: null
+      foreign_key_column: null
+      foreign_key_table: null
+      generation_expression: null
+      has_auto_increment: false
+      is_generated: false
+      is_nullable: true
+      is_primary_key: false
+      is_unique: false
+      max_length: null
+      name: advanced_query_alpha
+      numeric_precision: null
+      numeric_scale: null
+      table: phoenix
+    type: text
+  - collection: phoenix
+    field: advanced_query_omega
+    meta:
+      collection: phoenix
+      conditions:
+        - name: Is Advanced Mode
+          rule:
+            _and:
+              - advanced_mode:
+                  _eq: true
+          options:
+            lineNumber: true
+            lineWrapping: false
+            template: null
+          required: true
+        - name: Is Not Advanced Mode
+          rule:
+            _and:
+              - advanced_mode:
+                  _eq: null
+          hidden: true
+          options:
+            lineNumber: true
+            lineWrapping: false
+            template: null
+      display: null
+      display_options: null
+      field: advanced_query_omega
+      group: null
+      hidden: false
+      interface: input-code
+      note: null
+      options:
+        language: sql
+      readonly: false
+      required: false
+      sort: 20
+      special: null
+      translations: null
+      validation: null
+      validation_message: null
+      width: full
+    schema:
+      data_type: text
+      default_value: null
+      foreign_key_column: null
+      foreign_key_table: null
+      generation_expression: null
+      has_auto_increment: false
+      is_generated: false
+      is_nullable: true
+      is_primary_key: false
+      is_unique: false
+      max_length: null
+      name: advanced_query_omega
+      numeric_precision: null
+      numeric_scale: null
+      table: phoenix
+    type: text
+  - collection: phoenix
+    field: condition_alpha
+    meta:
+      collection: phoenix
+      conditions:
+        - name: _EQ advanced_mode
+          rule:
+            _and:
+              - advanced_mode:
+                  _eq: true
+          hidden: true
+          options:
+            lineNumber: true
+            lineWrapping: false
+            template: null
+            font: sans-serif
+            trim: false
+            masked: false
+            clear: false
+            slug: false
+        - name: _NEQ advanced_mode
+          rule:
+            _and:
+              - advanced_mode:
+                  _eq: false
+          hidden: false
+          options:
+            lineNumber: true
+            lineWrapping: false
+            template: null
+            font: sans-serif
+            trim: false
+            masked: false
+            clear: false
+            slug: false
+          required: false
+      display: null
+      display_options: null
+      field: condition_alpha
+      group: null
+      hidden: false
+      interface: input-code
+      note: null
+      options:
+        language: sql
+        lineNumber: false
+        template: WHERE ...
+      readonly: false
+      required: false
+      sort: 15
+      special: null
+      translations: null
+      validation: null
+      validation_message: null
+      width: half
+    schema:
+      data_type: text
+      default_value: null
+      foreign_key_column: null
+      foreign_key_table: null
+      generation_expression: null
+      has_auto_increment: false
+      is_generated: false
+      is_nullable: true
+      is_primary_key: false
+      is_unique: false
+      max_length: null
+      name: condition_alpha
+      numeric_precision: null
+      numeric_scale: null
+      table: phoenix
+    type: text
+  - collection: phoenix
+    field: condition_omega
+    meta:
+      collection: phoenix
+      conditions:
+        - name: _EQ advanced_mode
+          rule:
+            _and:
+              - advanced_mode:
+                  _eq: true
+          hidden: true
+          options:
+            lineNumber: true
+            lineWrapping: false
+            template: null
+            font: sans-serif
+            trim: false
+            masked: false
+            clear: false
+            slug: false
+        - name: _NEQ advanced_mode
+          rule:
+            _and:
+              - advanced_mode:
+                  _eq: false
+          hidden: false
+          options:
+            lineNumber: true
+            lineWrapping: false
+            template: null
+            font: sans-serif
+            trim: false
+            masked: false
+            clear: false
+            slug: false
+          required: false
+      display: null
+      display_options: null
+      field: condition_omega
+      group: null
+      hidden: false
+      interface: input-code
+      note: null
+      options:
+        language: sql
+        lineNumber: false
+        template: WHERE ...
+      readonly: false
+      required: false
+      sort: 16
+      special: null
+      translations: null
+      validation: null
+      validation_message: null
+      width: half
+    schema:
+      data_type: text
+      default_value: null
+      foreign_key_column: null
+      foreign_key_table: null
+      generation_expression: null
+      has_auto_increment: false
+      is_generated: false
+      is_nullable: true
+      is_primary_key: false
+      is_unique: false
+      max_length: null
+      name: condition_omega
+      numeric_precision: null
+      numeric_scale: null
+      table: phoenix
+    type: text
+  - collection: phoenix
+    field: connection_alpha
+    meta:
+      collection: phoenix
+      conditions: null
+      display: related-values
+      display_options:
+        template: '{{title}}'
+      field: connection_alpha
+      group: null
+      hidden: false
+      interface: select-dropdown-m2o
+      note: null
+      options:
+        template: '{{title}}'
+      readonly: false
+      required: true
+      sort: 9
+      special:
+        - m2o
+      translations: null
+      validation: null
+      validation_message: null
+      width: half
+    schema:
+      data_type: char
+      default_value: null
+      foreign_key_column: uuid
+      foreign_key_table: external_connections
+      generation_expression: null
+      has_auto_increment: false
+      is_generated: false
+      is_nullable: true
+      is_primary_key: false
+      is_unique: false
+      max_length: 36
+      name: connection_alpha
+      numeric_precision: null
+      numeric_scale: null
+      table: phoenix
+    type: string
+  - collection: phoenix
+    field: connection_omega
+    meta:
+      collection: phoenix
+      conditions: null
+      display: related-values
+      display_options:
+        template: '{{title}}'
+      field: connection_omega
+      group: null
+      hidden: false
+      interface: select-dropdown-m2o
+      note: null
+      options:
+        template: '{{title}}'
+      readonly: false
+      required: true
+      sort: 10
+      special:
+        - m2o
+      translations: null
+      validation: null
+      validation_message: null
+      width: half
+    schema:
+      data_type: char
+      default_value: null
+      foreign_key_column: uuid
+      foreign_key_table: external_connections
+      generation_expression: null
+      has_auto_increment: false
+      is_generated: false
+      is_nullable: true
+      is_primary_key: false
+      is_unique: false
+      max_length: 36
+      name: connection_omega
+      numeric_precision: null
+      numeric_scale: null
+      table: phoenix
+    type: string
+  - collection: phoenix
+    field: database_alpha
+    meta:
+      collection: phoenix
+      conditions:
+        - name: _EQ advanced_mode
+          rule:
+            _and:
+              - advanced_mode:
+                  _eq: true
+          hidden: true
+          options:
+            font: sans-serif
+            trim: false
+            masked: false
+            clear: false
+            slug: false
+        - name: _NEQ advanced_mode
+          rule:
+            _and:
+              - advanced_mode:
+                  _eq: false
+          hidden: false
+          options:
+            font: sans-serif
+            trim: false
+            masked: false
+            clear: false
+            slug: false
+          required: true
+      display: raw
+      display_options: null
+      field: database_alpha
+      group: null
+      hidden: false
+      interface: input
+      note: null
+      options: null
+      readonly: false
+      required: false
+      sort: 11
+      special: null
+      translations: null
+      validation: null
+      validation_message: null
+      width: half
+    schema:
+      data_type: varchar
+      default_value: null
+      foreign_key_column: null
+      foreign_key_table: null
+      generation_expression: null
+      has_auto_increment: false
+      is_generated: false
+      is_nullable: true
+      is_primary_key: false
+      is_unique: false
+      max_length: 255
+      name: database_alpha
+      numeric_precision: null
+      numeric_scale: null
+      table: phoenix
+    type: string
+  - collection: phoenix
+    field: database_omega
+    meta:
+      collection: phoenix
+      conditions:
+        - name: _EQ advanced_mode
+          rule:
+            _and:
+              - advanced_mode:
+                  _eq: true
+          hidden: true
+          options:
+            font: sans-serif
+            trim: false
+            masked: false
+            clear: false
+            slug: false
+        - name: _NEQ advanced_mode
+          rule:
+            _and:
+              - advanced_mode:
+                  _eq: false
+          hidden: false
+          options:
+            font: sans-serif
+            trim: false
+            masked: false
+            clear: false
+            slug: false
+          required: true
+      display: raw
+      display_options: null
+      field: database_omega
+      group: null
+      hidden: false
+      interface: input
+      note: null
+      options: null
+      readonly: false
+      required: false
+      sort: 12
+      special: null
+      translations: null
+      validation: null
+      validation_message: null
+      width: half
+    schema:
+      data_type: varchar
+      default_value: null
+      foreign_key_column: null
+      foreign_key_table: null
+      generation_expression: null
+      has_auto_increment: false
+      is_generated: false
+      is_nullable: true
+      is_primary_key: false
+      is_unique: false
+      max_length: 255
+      name: database_omega
+      numeric_precision: null
+      numeric_scale: null
+      table: phoenix
+    type: string
+  - collection: phoenix
+    field: date_created
+    meta:
+      collection: phoenix
+      conditions: null
+      display: datetime
+      display_options:
+        relative: true
+      field: date_created
+      group: null
+      hidden: true
+      interface: datetime
+      note: null
+      options: null
+      readonly: true
+      required: false
+      sort: 3
+      special:
+        - cast-timestamp
+        - date-created
+      translations: null
+      validation: null
+      validation_message: null
+      width: half
+    schema:
+      data_type: datetime
+      default_value: null
+      foreign_key_column: null
+      foreign_key_table: null
+      generation_expression: null
+      has_auto_increment: false
+      is_generated: false
+      is_nullable: true
+      is_primary_key: false
+      is_unique: false
+      max_length: null
+      name: date_created
+      numeric_precision: null
+      numeric_scale: null
+      table: phoenix
+    type: timestamp
+  - collection: phoenix
+    field: date_updated
+    meta:
+      collection: phoenix
+      conditions: null
+      display: datetime
+      display_options:
+        relative: true
+      field: date_updated
+      group: null
+      hidden: true
+      interface: datetime
+      note: null
+      options: null
+      readonly: true
+      required: false
+      sort: 5
+      special:
+        - cast-timestamp
+        - date-updated
+      translations: null
+      validation: null
+      validation_message: null
+      width: half
+    schema:
+      data_type: datetime
+      default_value: null
+      foreign_key_column: null
+      foreign_key_table: null
+      generation_expression: null
+      has_auto_increment: false
+      is_generated: false
+      is_nullable: true
+      is_primary_key: false
+      is_unique: false
+      max_length: null
+      name: date_updated
+      numeric_precision: null
+      numeric_scale: null
+      table: phoenix
+    type: timestamp
+  - collection: phoenix
+    field: distinct_field
+    meta:
+      collection: phoenix
+      conditions: null
+      display: raw
+      display_options: null
+      field: distinct_field
+      group: null
+      hidden: false
+      interface: input
+      note: null
+      options: null
+      readonly: false
+      required: true
+      sort: 8
+      special: null
+      translations: null
+      validation: null
+      validation_message: null
+      width: full
+    schema:
+      data_type: varchar
+      default_value: null
+      foreign_key_column: null
+      foreign_key_table: null
+      generation_expression: null
+      has_auto_increment: false
+      is_generated: false
+      is_nullable: true
+      is_primary_key: false
+      is_unique: false
+      max_length: 255
+      name: distinct_field
+      numeric_precision: null
+      numeric_scale: null
+      table: phoenix
+    type: string
+  - collection: phoenix
+    field: fields_alpha
+    meta:
+      collection: phoenix
+      conditions:
+        - name: _EQ advanced_mode
+          rule:
+            _and:
+              - advanced_mode:
+                  _eq: true
+          hidden: true
+          options:
+            font: sans-serif
+            trim: false
+            masked: false
+            clear: false
+            slug: false
+        - name: _NEQ advanced_mode
+          rule:
+            _and:
+              - advanced_mode:
+                  _eq: false
+          hidden: false
+          options:
+            font: sans-serif
+            trim: false
+            masked: false
+            clear: false
+            slug: false
+          required: true
+      display: null
+      display_options: null
+      field: fields_alpha
+      group: null
+      hidden: false
+      interface: list
+      note: null
+      options:
+        addLabel: Add Field
+        fields:
+          - field: field_name
+            name: field_name
+            type: string
+            meta:
+              field: field_name
+              width: full
+              type: string
+              interface: input
+          - field: field_transform
+            name: field_transform
+            type: text
+            meta:
+              field: field_transform
+              width: full
+              type: text
+              interface: input-code
+              options:
+                language: sql
+                lineNumber: false
+      readonly: false
+      required: false
+      sort: 13
+      special:
+        - cast-json
+      translations: null
+      validation: null
+      validation_message: null
+      width: half
+    schema:
+      data_type: json
+      default_value: null
+      foreign_key_column: null
+      foreign_key_table: null
+      generation_expression: null
+      has_auto_increment: false
+      is_generated: false
+      is_nullable: true
+      is_primary_key: false
+      is_unique: false
+      max_length: null
+      name: fields_alpha
+      numeric_precision: null
+      numeric_scale: null
+      table: phoenix
+    type: json
+  - collection: phoenix
+    field: fields_omega
+    meta:
+      collection: phoenix
+      conditions:
+        - name: _EQ advanced_mode
+          rule:
+            _and:
+              - advanced_mode:
+                  _eq: true
+          hidden: true
+          options:
+            font: sans-serif
+            trim: false
+            masked: false
+            clear: false
+            slug: false
+        - name: _NEQ advanced_mode
+          rule:
+            _and:
+              - advanced_mode:
+                  _eq: false
+          hidden: false
+          options:
+            font: sans-serif
+            trim: false
+            masked: false
+            clear: false
+            slug: false
+          required: true
+      display: null
+      display_options: null
+      field: fields_omega
+      group: null
+      hidden: false
+      interface: list
+      note: null
+      options:
+        addLabel: Add Field
+        fields:
+          - field: field_name
+            name: field_name
+            type: string
+            meta:
+              field: field_name
+              width: full
+              type: string
+              interface: input
+          - field: field_transform
+            name: field_transform
+            type: text
+            meta:
+              field: field_transform
+              width: full
+              type: text
+              interface: input-code
+              options:
+                language: sql
+                lineNumber: false
+      readonly: false
+      required: false
+      sort: 14
+      special:
+        - cast-json
+      translations: null
+      validation: null
+      validation_message: null
+      width: half
+    schema:
+      data_type: json
+      default_value: null
+      foreign_key_column: null
+      foreign_key_table: null
+      generation_expression: null
+      has_auto_increment: false
+      is_generated: false
+      is_nullable: true
+      is_primary_key: false
+      is_unique: false
+      max_length: null
+      name: fields_omega
+      numeric_precision: null
+      numeric_scale: null
+      table: phoenix
+    type: json
+  - collection: phoenix
+    field: identifier_field
+    meta:
+      collection: phoenix
+      conditions: null
+      display: raw
+      display_options: null
+      field: identifier_field
+      group: null
+      hidden: false
+      interface: input
+      note: null
+      options: null
+      readonly: false
+      required: true
+      sort: 7
+      special: null
+      translations: null
+      validation: null
+      validation_message: null
+      width: full
+    schema:
+      data_type: varchar
+      default_value: null
+      foreign_key_column: null
+      foreign_key_table: null
+      generation_expression: null
+      has_auto_increment: false
+      is_generated: false
+      is_nullable: true
+      is_primary_key: false
+      is_unique: false
+      max_length: 255
+      name: identifier_field
+      numeric_precision: null
+      numeric_scale: null
+      table: phoenix
+    type: string
+  - collection: phoenix
+    field: linked_name_alpha
+    meta:
+      collection: phoenix
+      conditions:
+        - name: IS MSSQL
+          rule:
+            _and:
+              - connection_alpha:
+                  driver:
+                    _neq: mssql
+          options:
+            font: sans-serif
+            trim: false
+            masked: false
+            clear: false
+            slug: false
+      display: raw
+      display_options: null
+      field: linked_name_alpha
+      group: null
+      hidden: false
+      interface: input
+      note: null
+      options: null
+      readonly: false
+      required: false
+      sort: 17
+      special: null
+      translations: null
+      validation: null
+      validation_message: null
+      width: half
+    schema:
+      data_type: varchar
+      default_value: null
+      foreign_key_column: null
+      foreign_key_table: null
+      generation_expression: null
+      has_auto_increment: false
+      is_generated: false
+      is_nullable: true
+      is_primary_key: false
+      is_unique: false
+      max_length: 255
+      name: linked_name_alpha
+      numeric_precision: null
+      numeric_scale: null
+      table: phoenix
+    type: string
+  - collection: phoenix
+    field: linked_name_omega
+    meta:
+      collection: phoenix
+      conditions:
+        - name: IS MSSQL
+          rule:
+            _and:
+              - connection_omega:
+                  driver:
+                    _neq: mssql
+          hidden: true
+          options:
+            font: sans-serif
+            trim: false
+            masked: false
+            clear: false
+            slug: false
+      display: raw
+      display_options: null
+      field: linked_name_omega
+      group: null
+      hidden: false
+      interface: input
+      note: null
+      options: null
+      readonly: false
+      required: false
+      sort: 18
+      special: null
+      translations: null
+      validation: null
+      validation_message: null
+      width: half
+    schema:
+      data_type: varchar
+      default_value: null
+      foreign_key_column: null
+      foreign_key_table: null
+      generation_expression: null
+      has_auto_increment: false
+      is_generated: false
+      is_nullable: true
+      is_primary_key: false
+      is_unique: false
+      max_length: 255
+      name: linked_name_omega
+      numeric_precision: null
+      numeric_scale: null
+      table: phoenix
+    type: string
+  - collection: phoenix
+    field: user_created
+    meta:
+      collection: phoenix
+      conditions: null
+      display: user
+      display_options: null
+      field: user_created
+      group: null
+      hidden: true
+      interface: select-dropdown-m2o
+      note: null
+      options:
+        template: '{{avatar.$thumbnail}} {{first_name}} {{last_name}}'
+      readonly: true
+      required: false
+      sort: 2
+      special:
+        - user-created
+      translations: null
+      validation: null
+      validation_message: null
+      width: half
+    schema:
+      data_type: char
+      default_value: null
+      foreign_key_column: id
+      foreign_key_table: directus_users
+      generation_expression: null
+      has_auto_increment: false
+      is_generated: false
+      is_nullable: true
+      is_primary_key: false
+      is_unique: false
+      max_length: 36
+      name: user_created
+      numeric_precision: null
+      numeric_scale: null
+      table: phoenix
+    type: string
+  - collection: phoenix
+    field: user_updated
+    meta:
+      collection: phoenix
+      conditions: null
+      display: user
+      display_options: null
+      field: user_updated
+      group: null
+      hidden: true
+      interface: select-dropdown-m2o
+      note: null
+      options:
+        template: '{{avatar.$thumbnail}} {{first_name}} {{last_name}}'
+      readonly: true
+      required: false
+      sort: 4
+      special:
+        - user-updated
+      translations: null
+      validation: null
+      validation_message: null
+      width: half
+    schema:
+      data_type: char
+      default_value: null
+      foreign_key_column: id
+      foreign_key_table: directus_users
+      generation_expression: null
+      has_auto_increment: false
+      is_generated: false
+      is_nullable: true
+      is_primary_key: false
+      is_unique: false
+      max_length: 36
+      name: user_updated
+      numeric_precision: null
+      numeric_scale: null
+      table: phoenix
+    type: string
+  - collection: phoenix
+    field: uuid
+    meta:
+      collection: phoenix
+      conditions: null
+      display: null
+      display_options: null
+      field: uuid
+      group: null
+      hidden: true
+      interface: input
+      note: null
+      options: null
+      readonly: true
+      required: false
+      sort: 1
+      special:
+        - uuid
+      translations: null
+      validation: null
+      validation_message: null
+      width: full
+    schema:
+      data_type: char
+      default_value: null
+      foreign_key_column: null
+      foreign_key_table: null
+      generation_expression: null
+      has_auto_increment: false
+      is_generated: false
+      is_nullable: false
+      is_primary_key: true
+      is_unique: true
+      max_length: 36
+      name: uuid
+      numeric_precision: null
+      numeric_scale: null
+      table: phoenix
+    type: uuid
+  - collection: service_accounts
+    field: date_created
+    meta:
+      collection: service_accounts
+      conditions: null
+      display: datetime
+      display_options:
+        relative: true
+      field: date_created
+      group: null
+      hidden: true
+      interface: datetime
+      note: null
+      options: null
+      readonly: true
+      required: false
+      sort: 3
+      special:
+        - cast-timestamp
+        - date-created
+      translations: null
+      validation: null
+      validation_message: null
+      width: half
+    schema:
+      data_type: datetime
+      default_value: null
+      foreign_key_column: null
+      foreign_key_table: null
+      generation_expression: null
+      has_auto_increment: false
+      is_generated: false
+      is_nullable: true
+      is_primary_key: false
+      is_unique: false
+      max_length: null
+      name: date_created
+      numeric_precision: null
+      numeric_scale: null
+      table: service_accounts
+    type: timestamp
+  - collection: service_accounts
+    field: date_updated
+    meta:
+      collection: service_accounts
+      conditions: null
+      display: datetime
+      display_options:
+        relative: true
+      field: date_updated
+      group: null
+      hidden: true
+      interface: datetime
+      note: null
+      options: null
+      readonly: true
+      required: false
+      sort: 5
+      special:
+        - cast-timestamp
+        - date-updated
+      translations: null
+      validation: null
+      validation_message: null
+      width: half
+    schema:
+      data_type: datetime
+      default_value: null
+      foreign_key_column: null
+      foreign_key_table: null
+      generation_expression: null
+      has_auto_increment: false
+      is_generated: false
+      is_nullable: true
+      is_primary_key: false
+      is_unique: false
+      max_length: null
+      name: date_updated
+      numeric_precision: null
+      numeric_scale: null
+      table: service_accounts
+    type: timestamp
+  - collection: service_accounts
+    field: expires_at
+    meta:
+      collection: service_accounts
+      conditions: null
+      display: datetime
+      display_options: null
+      field: expires_at
+      group: null
+      hidden: false
+      interface: datetime
+      note: null
+      options: null
+      readonly: false
+      required: false
+      sort: 9
+      special: null
+      translations: null
+      validation: null
+      validation_message: null
+      width: full
+    schema:
+      data_type: datetime
+      default_value: null
+      foreign_key_column: null
+      foreign_key_table: null
+      generation_expression: null
+      has_auto_increment: false
+      is_generated: false
+      is_nullable: true
+      is_primary_key: false
+      is_unique: false
+      max_length: null
+      name: expires_at
+      numeric_precision: null
+      numeric_scale: null
+      table: service_accounts
+    type: dateTime
+  - collection: service_accounts
+    field: password
+    meta:
+      collection: service_accounts
+      conditions: null
+      display: masked
+      display_options: null
+      field: password
+      group: null
+      hidden: false
+      interface: input
+      note: null
+      options:
+        masked: true
+      readonly: false
+      required: true
+      sort: 8
+      special: null
+      translations: null
+      validation: null
+      validation_message: null
+      width: full
+    schema:
+      data_type: varchar
+      default_value: null
+      foreign_key_column: null
+      foreign_key_table: null
+      generation_expression: null
+      has_auto_increment: false
+      is_generated: false
+      is_nullable: true
+      is_primary_key: false
+      is_unique: false
+      max_length: 255
+      name: password
+      numeric_precision: null
+      numeric_scale: null
+      table: service_accounts
+    type: string
+  - collection: service_accounts
+    field: title
+    meta:
+      collection: service_accounts
+      conditions: null
+      display: raw
+      display_options: null
+      field: title
+      group: null
+      hidden: false
+      interface: input
+      note: null
+      options: null
+      readonly: false
+      required: true
+      sort: 6
+      special: null
+      translations: null
+      validation: null
+      validation_message: null
+      width: full
+    schema:
+      data_type: varchar
+      default_value: null
+      foreign_key_column: null
+      foreign_key_table: null
+      generation_expression: null
+      has_auto_increment: false
+      is_generated: false
+      is_nullable: true
+      is_primary_key: false
+      is_unique: false
+      max_length: 255
+      name: title
+      numeric_precision: null
+      numeric_scale: null
+      table: service_accounts
+    type: string
+  - collection: service_accounts
+    field: user_created
+    meta:
+      collection: service_accounts
+      conditions: null
+      display: user
+      display_options: null
+      field: user_created
+      group: null
+      hidden: true
+      interface: select-dropdown-m2o
+      note: null
+      options:
+        template: '{{avatar.$thumbnail}} {{first_name}} {{last_name}}'
+      readonly: true
+      required: false
+      sort: 2
+      special:
+        - user-created
+      translations: null
+      validation: null
+      validation_message: null
+      width: half
+    schema:
+      data_type: char
+      default_value: null
+      foreign_key_column: id
+      foreign_key_table: directus_users
+      generation_expression: null
+      has_auto_increment: false
+      is_generated: false
+      is_nullable: true
+      is_primary_key: false
+      is_unique: false
+      max_length: 36
+      name: user_created
+      numeric_precision: null
+      numeric_scale: null
+      table: service_accounts
+    type: string
+  - collection: service_accounts
+    field: user_updated
+    meta:
+      collection: service_accounts
+      conditions: null
+      display: user
+      display_options: null
+      field: user_updated
+      group: null
+      hidden: true
+      interface: select-dropdown-m2o
+      note: null
+      options:
+        template: '{{avatar.$thumbnail}} {{first_name}} {{last_name}}'
+      readonly: true
+      required: false
+      sort: 4
+      special:
+        - user-updated
+      translations: null
+      validation: null
+      validation_message: null
+      width: half
+    schema:
+      data_type: char
+      default_value: null
+      foreign_key_column: id
+      foreign_key_table: directus_users
+      generation_expression: null
+      has_auto_increment: false
+      is_generated: false
+      is_nullable: true
+      is_primary_key: false
+      is_unique: false
+      max_length: 36
+      name: user_updated
+      numeric_precision: null
+      numeric_scale: null
+      table: service_accounts
+    type: string
+  - collection: service_accounts
+    field: username
+    meta:
+      collection: service_accounts
+      conditions: null
+      display: raw
+      display_options: null
+      field: username
+      group: null
+      hidden: false
+      interface: input
+      note: null
+      options: null
+      readonly: false
+      required: true
+      sort: 7
+      special: null
+      translations: null
+      validation: null
+      validation_message: null
+      width: full
+    schema:
+      data_type: varchar
+      default_value: null
+      foreign_key_column: null
+      foreign_key_table: null
+      generation_expression: null
+      has_auto_increment: false
+      is_generated: false
+      is_nullable: true
+      is_primary_key: false
+      is_unique: false
+      max_length: 255
+      name: username
+      numeric_precision: null
+      numeric_scale: null
+      table: service_accounts
+    type: string
+  - collection: service_accounts
+    field: uuid
+    meta:
+      collection: service_accounts
+      conditions: null
+      display: null
+      display_options: null
+      field: uuid
+      group: null
+      hidden: true
+      interface: input
+      note: null
+      options: null
+      readonly: true
+      required: false
+      sort: 1
+      special:
+        - uuid
+      translations: null
+      validation: null
+      validation_message: null
+      width: full
+    schema:
+      data_type: char
+      default_value: null
+      foreign_key_column: null
+      foreign_key_table: null
+      generation_expression: null
+      has_auto_increment: false
+      is_generated: false
+      is_nullable: false
+      is_primary_key: true
+      is_unique: true
+      max_length: 36
+      name: uuid
+      numeric_precision: null
+      numeric_scale: null
+      table: service_accounts
+    type: uuid
+relations:
+  - collection: external_connections
+    field: service_account
+    meta:
+      junction_field: null
+      many_collection: external_connections
+      many_field: service_account
+      one_allowed_collections: null
+      one_collection: service_accounts
+      one_collection_field: null
+      one_deselect_action: nullify
+      one_field: null
+      sort_field: null
+    related_collection: service_accounts
+    schema:
+      column: service_account
+      constraint_name: null
+      foreign_key_column: uuid
+      foreign_key_table: service_accounts
+      on_delete: SET NULL
+      on_update: NO ACTION
+      table: external_connections
+  - collection: external_connections
+    field: user_created
+    meta:
+      junction_field: null
+      many_collection: external_connections
+      many_field: user_created
+      one_allowed_collections: null
+      one_collection: directus_users
+      one_collection_field: null
+      one_deselect_action: nullify
+      one_field: null
+      sort_field: null
+    related_collection: directus_users
+    schema:
+      column: user_created
+      constraint_name: null
+      foreign_key_column: id
+      foreign_key_table: directus_users
+      on_delete: NO ACTION
+      on_update: NO ACTION
+      table: external_connections
+  - collection: external_connections
+    field: user_updated
+    meta:
+      junction_field: null
+      many_collection: external_connections
+      many_field: user_updated
+      one_allowed_collections: null
+      one_collection: directus_users
+      one_collection_field: null
+      one_deselect_action: nullify
+      one_field: null
+      sort_field: null
+    related_collection: directus_users
+    schema:
+      column: user_updated
+      constraint_name: null
+      foreign_key_column: id
+      foreign_key_table: directus_users
+      on_delete: NO ACTION
+      on_update: NO ACTION
+      table: external_connections
+  - collection: phoenix
+    field: connection_alpha
+    meta:
+      junction_field: null
+      many_collection: phoenix
+      many_field: connection_alpha
+      one_allowed_collections: null
+      one_collection: external_connections
+      one_collection_field: null
+      one_deselect_action: nullify
+      one_field: null
+      sort_field: null
+    related_collection: external_connections
+    schema:
+      column: connection_alpha
+      constraint_name: null
+      foreign_key_column: uuid
+      foreign_key_table: external_connections
+      on_delete: SET NULL
+      on_update: NO ACTION
+      table: phoenix
+  - collection: phoenix
+    field: connection_omega
+    meta:
+      junction_field: null
+      many_collection: phoenix
+      many_field: connection_omega
+      one_allowed_collections: null
+      one_collection: external_connections
+      one_collection_field: null
+      one_deselect_action: nullify
+      one_field: null
+      sort_field: null
+    related_collection: external_connections
+    schema:
+      column: connection_omega
+      constraint_name: null
+      foreign_key_column: uuid
+      foreign_key_table: external_connections
+      on_delete: SET NULL
+      on_update: NO ACTION
+      table: phoenix
+  - collection: phoenix
+    field: user_created
+    meta:
+      junction_field: null
+      many_collection: phoenix
+      many_field: user_created
+      one_allowed_collections: null
+      one_collection: directus_users
+      one_collection_field: null
+      one_deselect_action: nullify
+      one_field: null
+      sort_field: null
+    related_collection: directus_users
+    schema:
+      column: user_created
+      constraint_name: null
+      foreign_key_column: id
+      foreign_key_table: directus_users
+      on_delete: NO ACTION
+      on_update: NO ACTION
+      table: phoenix
+  - collection: phoenix
+    field: user_updated
+    meta:
+      junction_field: null
+      many_collection: phoenix
+      many_field: user_updated
+      one_allowed_collections: null
+      one_collection: directus_users
+      one_collection_field: null
+      one_deselect_action: nullify
+      one_field: null
+      sort_field: null
+    related_collection: directus_users
+    schema:
+      column: user_updated
+      constraint_name: null
+      foreign_key_column: id
+      foreign_key_table: directus_users
+      on_delete: NO ACTION
+      on_update: NO ACTION
+      table: phoenix
+  - collection: service_accounts
+    field: user_created
+    meta:
+      junction_field: null
+      many_collection: service_accounts
+      many_field: user_created
+      one_allowed_collections: null
+      one_collection: directus_users
+      one_collection_field: null
+      one_deselect_action: nullify
+      one_field: null
+      sort_field: null
+    related_collection: directus_users
+    schema:
+      column: user_created
+      constraint_name: null
+      foreign_key_column: id
+      foreign_key_table: directus_users
+      on_delete: NO ACTION
+      on_update: NO ACTION
+      table: service_accounts
+  - collection: service_accounts
+    field: user_updated
+    meta:
+      junction_field: null
+      many_collection: service_accounts
+      many_field: user_updated
+      one_allowed_collections: null
+      one_collection: directus_users
+      one_collection_field: null
+      one_deselect_action: nullify
+      one_field: null
+      sort_field: null
+    related_collection: directus_users
+    schema:
+      column: user_updated
+      constraint_name: null
+      foreign_key_column: id
+      foreign_key_table: directus_users
+      on_delete: NO ACTION
+      on_update: NO ACTION
+      table: service_accounts

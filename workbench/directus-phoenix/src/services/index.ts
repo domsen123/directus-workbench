@@ -1,7 +1,11 @@
 import knex from 'knex';
 import alasql from 'alasql';
+import { getChunks } from '../utils';
 import type { Knex } from 'knex';
 import type { Logger } from 'pino';
+import { v4 as uuidv4 } from 'uuid';
+import { TBL_PHOENIX_DETAILS, TBL_PHOENIX_HISTORY, TBL_PHOENIX_RESULTS } from '../constants';
+import { FindItemsExtended, FindItemsOptions } from '../types';
 
 export class PhoenixService {
 	private started_at = new Date();
@@ -18,7 +22,8 @@ export class PhoenixService {
 	private _distinct_omega: any[] | undefined;
 	private _base_alpha: any[] | undefined;
 
-	constructor(private knex: Knex, private logger: Logger) {}
+	constructor(private knex: Knex, private logger: Logger, private bree: any) {}
+
 	private get config() {
 		return this.knex(this._config);
 	}
@@ -28,6 +33,7 @@ export class PhoenixService {
 	private get serviceAccount() {
 		return this.knex(this._serviceAccounts);
 	}
+	private sleep = async (seconds: number) => new Promise((resolve) => setTimeout(resolve, 1000 * seconds));
 
 	private getConnection = async (uuid: string) =>
 		await this.connection.select('service_account', 'host', 'port', 'driver').where('uuid', uuid).first();
@@ -35,10 +41,17 @@ export class PhoenixService {
 	private getServiceAccount = async (uuid: string) =>
 		await this.serviceAccount.select('username', 'password').where('uuid', uuid).first();
 
-	private rawQuery = async (knex: Knex, query: string, linked_server?: string) => {
-		const q = query.trim();
-		const rawQuery = linked_server ? `SELECT * FROM OPENQUERY(${linked_server}, '${q.replaceAll("'", "''")}');` : q;
-		return await knex.raw(rawQuery);
+	private rawQueryString = (query: string, linked_server?: string) =>
+		linked_server
+			? `SELECT * FROM OPENQUERY(${linked_server}, '${query.trim().replaceAll("'", "''")}');`
+			: query.trim();
+
+	private rawQuery = async (knex: Knex, query: string, linked_server?: string): Promise<Record<string, string>[]> => {
+		const rawQuery = this.rawQueryString(query, linked_server);
+		const result: Record<string, any>[] = await knex.raw(rawQuery);
+		return result.map((item) =>
+			Object.assign({}, ...Object.entries(item).map(([k, v]) => ({ [k.toLowerCase()]: v.toString() })))
+		);
 	};
 
 	public start = async (uuid: string) => {
@@ -96,211 +109,433 @@ export class PhoenixService {
 		};
 	};
 
-	// private getDistinct = (config: any, entity: 'alpha' | 'omega', results: any[]): any[] => {
-	// 	if (!this[`_distinct_${entity}`]) {
-	// 		this[`_distinct_${entity}`] = alasql(`SELECT DISTINCT ${config.distinct_field} FROM ?`, [results]) as any[];
-	// 	}
-	// 	//@ts-ignore ...
-	// 	return this[`_distinct_${entity}`];
-	// };
+	private getIndexStatus = async (tableName: string): Promise<number> => {
+		const { reltuples } = await this.knex
+			.select('pg_class.reltuples')
+			.from('pg_tables')
+			.leftOuterJoin('pg_class', 'pg_tables.tablename', 'pg_class.relname')
+			.where('pg_tables.tablename', tableName)
+			.first();
+		this.logger.debug(`Index ${tableName}: ${reltuples}`);
+		return reltuples;
+	};
 
-	// private getBaseAlhpa = (config: any, result_alpha: any[], results_omega: any[]) => {
-	// 	if (!this._base_alpha) {
-	// 		this._base_alpha = alasql(
-	// 			`SELECT * FROM ? WHERE ${config.distinct_field} IN (${this.getDistinct(config, 'omega', results_omega)})`,
-	// 			[result_alpha]
-	// 		);
-	// 	}
-	// 	return this._base_alpha;
-	// };
+	private createTableAndInsert = async (
+		uuid: string,
+		result: any[],
+		systemFields: string[],
+		entity: 'alpha' | 'omega'
+	) => {
+		const tableName = `${uuid}_${entity}`;
+		const exists = await this.knex.schema.hasTable(tableName);
+		if (exists) await this.knex.schema.dropTable(tableName);
+		await this.knex.schema.createTable(tableName, (table) => {
+			systemFields.map((field) => table.string(field).index());
+			Object.keys(result[0])
+				.filter((field) => !systemFields.includes(field))
+				.map((v) => table.string(v));
+			table.index(systemFields, `idx_${tableName}`);
+		});
+		for (const chunk of getChunks(result, 65000, 0)) {
+			await this.knex(tableName).insert(chunk);
+		}
+		let indexCreated = 0;
+		while (indexCreated < result.length) {
+			indexCreated = await this.getIndexStatus(tableName);
+			await this.sleep(1);
+		}
+		if (indexCreated) return Promise.resolve();
+	};
 
-	// private findMissingItems = async (config: any, result_alpha: any[], result_omega: any[]) => {
-	// 	// const distinct_omega = this.getDistinct(config, 'omega', result_omega);
-	// 	// const distinct_values_omega = distinct_omega.map((f: any) => `'${f[config.distinct_field]}'`).join(',');
+	private findMissing = async ({
+		system_name,
+		history_uuid,
+		identifier_field,
+		distinct_field,
+		table_alpha,
+		table_omega,
+		trx,
+	}: FindItemsOptions) => {
+		const query_missing = `
+			SELECT * FROM (
+				SELECT alpha.*, COALESCE(omega.:identifier_field:, 'MISSING') error_type
+				FROM :table_alpha: alpha
+				LEFT JOIN (
+					SELECT system_name, :identifier_field: FROM :table_omega:
+				) omega ON alpha.:identifier_field: = omega.:identifier_field: AND omega.system_name = :system_name
+				WHERE alpha.:distinct_field: IN (SELECT DISTINCT :distinct_field: FROM :table_omega: WHERE system_name = :system_name)
+			) h
+			WHERE h.error_type = 'MISSING';
+		`;
 
-	// 	const result = alasql(
-	// 		`SELECT result_alpha.${config.identifier_field}
-	// 		FROM ? result_alpha
-	// 		LEFT JOIN ? result_omega ON result_alpha.${config.identifier_field} = result_omega.${config.identifier_field} AND result_omega.${config.identifier_field} IS NULL`,
-	// 		[this.getBaseAlhpa(config, result_alpha, result_omega), result_omega]
-	// 	);
-	// 	const grouped = alasql(
-	// 		`SELECT ${config.distinct_field}, count(*) MISSING
-	// 		FROM ?
-	// 		GROUP BY ${config.distinct_field}
-	// 		ORDER BY ${config.distinct_field}`,
-	// 		[result]
-	// 	);
-	// 	return { result, grouped };
-	// };
+		const { rows } = await this.knex.raw(query_missing, {
+			identifier_field,
+			distinct_field,
+			table_alpha,
+			table_omega,
+			system_name,
+		});
 
-	// private findOrphanedItems = async (config: any, result_alpha: any[], result_omega: any[]) => {
-	// 	// const distinct_alpha = this.getDistinct(config, 'omega', result_omega);
-	// 	// const distinct_values_alpha = distinct_alpha.map((f: any) => `'${f[config.distinct_field]}'`).join(',');
+		const date_created = this.knex.fn.now();
+		const inserts = rows.map((data: any) => ({
+			uuid: uuidv4(),
+			system_name,
+			history_uuid,
+			identifier: data[identifier_field],
+			identifier_description: identifier_field,
+			distinct: data[distinct_field],
+			distinct_description: distinct_field,
+			error_type: 'MISSING',
+			data,
+			date_created,
+		}));
+		if (inserts && inserts.length > 0) {
+			for (const insert of getChunks(inserts, 65000, 0)) {
+				await trx(TBL_PHOENIX_DETAILS).insert(insert);
+			}
+		}
 
-	// 	const result = alasql(
-	// 		`SELECT result_omega.${config.identifier_field}
-	// 		FROM ? result_omega
-	// 		LEFT JOIN ? result_alpha ON result_alpha.${config.identifier_field} = result_omega.${config.identifier_field}  AND result_alpha.${config.identifier_field} IS NULL`,
-	// 		[result_omega, this.getBaseAlhpa(config, result_alpha, result_omega)]
-	// 	);
-	// 	const grouped = alasql(
-	// 		`SELECT ${config.distinct_field}, count(*) ORPHANED
-	// 		FROM ?
-	// 		GROUP BY ${config.distinct_field}
-	// 		ORDER BY ${config.distinct_field}`,
-	// 		[result]
-	// 	);
-	// 	return { result, grouped };
-	// };
+		return rows;
+	};
 
-	// private findNotInSyncItems = async (config: any, result_alpha: any[], result_omega: any[]) => {
-	// 	const field_to_check = Object.keys(result_alpha[0]).filter(
-	// 		(field) => !['SYSTEM_NAME', config.identifier_field, config.distinct_field].includes(field)
-	// 	);
-	// 	// const distinct_omega = this.getDistinct(config, 'omega', result_omega);
-	// 	// const distinct_values_omega = distinct_omega.map((f: any) => `'${f[config.distinct_field]}'`).join(',');
+	private findOrphaned = async ({
+		system_name,
+		history_uuid,
+		identifier_field,
+		distinct_field,
+		table_alpha,
+		table_omega,
+		trx,
+	}: FindItemsOptions) => {
+		const query_orphaned = `
+			SELECT * FROM (
+				SELECT omega.*, COALESCE(alpha.:identifier_field:, 'ORPHANED') error_type
+				FROM :table_omega: omega
+				LEFT JOIN (
+					SELECT :identifier_field: FROM :table_alpha:
+				) alpha ON omega.:identifier_field: = alpha.:identifier_field:
+				WHERE omega.:distinct_field: IN (SELECT DISTINCT :distinct_field: FROM :table_alpha:) AND omega.system_name = :system_name
+			) h
+			WHERE h.error_type = 'ORPHANED';
+		`;
 
-	// 	const join_clause = field_to_check.map((f) => `result_alpha.${f} <> result_omega.${f}`).join(' OR ');
+		const { rows } = await this.knex.raw(query_orphaned, {
+			system_name,
+			identifier_field,
+			distinct_field,
+			table_alpha,
+			table_omega,
+		});
 
-	// 	this.logger.info(join_clause);
+		const date_created = this.knex.fn.now();
+		const inserts = rows.map((data: any) => ({
+			uuid: uuidv4(),
+			system_name,
+			history_uuid,
+			identifier: data[identifier_field],
+			identifier_description: identifier_field,
+			distinct: data[distinct_field],
+			distinct_description: distinct_field,
+			error_type: 'ORPHANED',
+			data,
+			date_created,
+		}));
+		if (inserts && inserts.lengt > 0) {
+			for (const insert of getChunks(inserts, 65000, 0)) {
+				await trx(TBL_PHOENIX_DETAILS).insert(insert);
+			}
+		}
 
-	// 	const result = alasql(
-	// 		`SELECT result_alpha.*, 'NOT_IN_SYNC' ERROR_TYPE
-	// 		FROM ? result_alpha
-	// 		JOIN ? result_omega ON result_alpha.${config.identifier_field} = result_omega.${config.identifier_field}
-	// 		AND (${join_clause})
-	// 		UNION
-	// 		SELECT result_omega.*, 'NOT_IN_SYNC' ERROR_TYPE
-	// 		FROM ? result_omega
-	// 		JOIN ? result_alpha ON result_alpha.${config.identifier_field} = result_omega.${config.identifier_field}
-	// 		AND (${join_clause})
-	// 		`,
-	// 		[this.getBaseAlhpa(config, result_alpha, result_omega), result_omega]
-	// 	);
-	// 	const grouped = alasql(
-	// 		`SELECT ${config.distinct_field}, count(*) / 2 NOT_IN_SYNC
-	// 		FROM ?
-	// 		GROUP BY ${config.distinct_field}
-	// 		ORDER BY ${config.distinct_field}`,
-	// 		[result]
-	// 	);
-	// 	return { result, grouped };
-	// };
+		return rows;
+	};
 
-	private advanced_phoenix = async (config: any, knex_alpha: Knex, knex_omega: Knex) => {
-		const [result_alpha, result_omega] = await Promise.all([
-			this.rawQuery(knex_alpha, config.advanced_query_alpha, config.linked_name_alpha),
-			this.rawQuery(knex_omega, config.advanced_query_omega, config.linked_name_omega),
-		]);
-		this.logger.info(`ALPHA: ${result_alpha.length}`);
-		this.logger.info(`OEMGA: ${result_omega.length}`);
+	private findNotInSync = async ({
+		system_name,
+		history_uuid,
+		identifier_field,
+		distinct_field,
+		table_alpha,
+		table_omega,
+		trx,
+		additional_fields,
+	}: FindItemsExtended) => {
+		const query_notInSync = `
+			SELECT alpha.*, 'NOT_IN_SYNC' error_type
+			FROM (
+				SELECT *
+				FROM :table_alpha:
+				WHERE :distinct_field: IN (SELECT DISTINCT :distinct_field: FROM :table_omega: WHERE system_name = :system_name)
+			) alpha
+			JOIN :table_omega: omega ON alpha.:identifier_field: = omega.:identifier_field: AND omega.system_name = :system_name AND (
+				${additional_fields.map((f) => `alpha.${f} <> omega.${f}`).join(' OR ')}
+			)
+			UNION
+			SELECT omega.*, 'NOT_IN_SYNC' error_type
+			FROM (
+				SELECT *
+				FROM :table_omega:
+				WHERE :distinct_field: IN (SELECT DISTINCT :distinct_field: FROM :table_alpha:) AND system_name = :system_name
+			) omega
+			JOIN :table_alpha: alpha ON alpha.:identifier_field: = omega.:identifier_field: AND (
+				${additional_fields.map((f) => `alpha.${f} <> omega.${f}`).join(' OR ')}
+			)
+		`;
 
-		// const sql = `SELECT * FROM :result_alpha WHERE COMPANY_CODE IN (SELECT DISTINCT COMPANY_CODE FROM :result_omega)`;
-		const base = result_alpha.filter((item: any) =>
-			[...new Set(result_omega.map((item: any) => item.COMPANY_CODE))].includes(item.COMPANY_CODE)
+		const { rows } = await this.knex.raw(query_notInSync, {
+			system_name,
+			identifier_field,
+			distinct_field,
+			table_alpha,
+			table_omega,
+		});
+
+		const { rows: summary } = await this.knex.raw(
+			`
+			SELECT
+				${identifier_field}
+				,${distinct_field}
+				,json_agg(result.*) AS "data"
+			FROM (${query_notInSync}) result
+			GROUP BY ${distinct_field}, ${identifier_field}
+		`,
+			{ system_name, identifier_field, distinct_field, table_alpha, table_omega }
 		);
 
-		this.logger.info(`BASE: ${base.length}`);
+		const inserts = summary.map((data: any) => ({
+			uuid: uuidv4(),
+			system_name,
+			history_uuid,
+			identifier: data[identifier_field],
+			identifier_description: identifier_field,
+			distinct: data[distinct_field],
+			distinct_description: distinct_field,
+			error_type: 'NOT_IN_SYNC',
+			data,
+			date_created: this.knex.fn.now(),
+		}));
+		if (inserts && inserts.length > 0) {
+			for (const insert of getChunks(inserts, 65000, 0)) {
+				await trx(TBL_PHOENIX_DETAILS).insert(insert);
+			}
+		}
 
-		// const exists = await this.knex.schema.hasTable(config.uuid);
-		// if (exists) {
-		// 	await this.knex.schema.dropTable(config.uuid);
-		// }
-		// // if (!exists) {
-		// this.knex.schema.createTable(config.uuid, (table) => {
-		// 	table.string(`SYSTEM_NAME`);
-		// 	table.string(config.identifier_field).index();
-		// 	table.string(config.distinct_field);
-		// 	Object.keys(result_alpha[0])
-		// 		.filter((field) => !['SYSTEM_NAME', config.identifier_field, config.distinct_field].includes(field))
-		// 		.map((v) => table.string(v));
-		// 	table.index(['SYSTEM_NAME', config.identifier_field, config.distinct_field], 'idx_sys');
-		// });
-		// let q = `INSERT INTO ${config.uuid}(${Object.keys(result_alpha[0])
-		// 	.map((k) => k)
-		// 	.join(',')}) VALUES `;
+		return rows;
+	};
 
-		// q =
-		// 	q +
-		// 	[...result_alpha, ...result_omega]
-		// 		.map(
-		// 			(item) =>
-		// 				`(${(Object.values(item) as string[]).map((c: string) => `'${c.replaceAll("'", "''")}'`).join(',')})`
-		// 		)
-		// 		.join(',');
-		// await this.knex.raw(q);
+	private findMatch = async ({
+		history_uuid,
+		system_name,
+		identifier_field,
+		distinct_field,
+		table_alpha,
+		table_omega,
+		additional_fields,
+		trx,
+	}: FindItemsExtended) => {
+		const query_match = `
+			SELECT alpha.*, 'MATCH' error_type
+			FROM (
+				SELECT *
+				FROM :table_alpha:
+				WHERE :distinct_field: IN (SELECT DISTINCT :distinct_field: FROM :table_omega: WHERE system_name = :system_name)
+			) alpha
+			JOIN :table_omega: omega ON alpha.:identifier_field: = omega.:identifier_field: AND omega.system_name = :system_name AND (
+				${additional_fields.map((f) => `alpha.${f} = omega.${f}`).join(' OR ')}
+		)`;
 
-		// await this.knex.schema.dropTable(config.uuid);
-		// }
-		this.logger.info(`FINISHED`);
-		// this._result_alpha = alasql(
-		// 	`SELECT * FROM :result_alpha WHERE ${config.distinct_field} IN (SELECT DISTINCT ${config.distinct_field} FROM :result_omega)`,
-		// 	{
-		// 		result_alpha,
-		// 		result_omega,
-		// 	}
-		// ) as any[];
-		// this._result_omega = result_omega as any[];
+		const { rows } = await this.knex.raw(query_match, {
+			system_name,
+			identifier_field,
+			distinct_field,
+			table_alpha,
+			table_omega,
+		});
 
-		// this.logger.info(`ALPHA BASE: ${this._result_alpha.length}`);
-		// this.logger.info(`OEMGA BASE: ${this._result_omega.length}`);
+		const date_created = this.knex.fn.now();
+		const inserts = rows.map((data: any) => ({
+			uuid: uuidv4(),
+			system_name,
+			history_uuid,
+			identifier: data[identifier_field],
+			identifier_description: identifier_field,
+			distinct: data[distinct_field],
+			distinct_description: distinct_field,
+			error_type: 'MATCH',
+			data,
+			date_created,
+		}));
+		if (inserts && inserts.length > 0) {
+			for (const insert of getChunks(inserts, 65000, 0)) {
+				await trx(TBL_PHOENIX_DETAILS).insert(insert);
+			}
+		}
 
-		// if (this._result_alpha && this._result_omega) {
-		// 	this.logger.info(`Missing start`);
-		// 	const missing = alasql(
-		// 		`
-		// 	SELECT alpha.${config.identifier_field}
-		// 	FROM ?
-		// 	LEFT JOIN ? omega ON alpha.${config.identifier_field} = omega.${config.identifier_field} AND omega.${config.identifier_field} IS NULL
-		// 	`,
-		// 		[this._result_alpha, alasql(`SELECT ${config.identifier_field} FROM ?`, [this._result_omega])]
-		// 	);
-		// 	this.logger.info(`Missing end ${missing.length}`);
-		// }
+		return rows;
+	};
 
-		// if (result_alpha && result_omega) {
-		// 	this.logger.info('- SEARCHING MISSING');
-		// 	const { result: missing, grouped: missing_grouped } = await this.findMissingItems(
-		// 		config,
-		// 		result_alpha,
-		// 		result_omega
-		// 	);
-		// 	this.logger.info(`|- FOUND: ${missing.length}`);
-		// 	this.logger.info('- SEARCHING ORPHANED');
-		// 	const { result: orphaned, grouped: orphaned_grouped } = await this.findOrphanedItems(
-		// 		config,
-		// 		result_alpha,
-		// 		result_omega
-		// 	);
-		// 	this.logger.info(`|- FOUND: ${orphaned.length}`);
-		// 	this.logger.info('- SEARCHING NOT_IN_SYNC');
-		// 	const { result: notInSync, grouped: notInSync_grouped } = await this.findNotInSyncItems(
-		// 		config,
-		// 		result_alpha,
-		// 		result_omega
-		// 	);
-		// 	this.logger.info(`|- FOUND: ${notInSync.length}`);
+	private advanced_phoenix = async (config: any, knex_alpha: Knex, knex_omega: Knex) => {
+		const { uuid } = config;
+		let { identifier_field, distinct_field } = config;
 
-		// 	const result = alasql(
-		// 		`
-		// 		SELECT
-		// 			${config.distinct_field}
-		// 			,(SELECT MISSING FROM :missing_grouped WHERE ${config.distinct_field} = d.${config.distinct_field}) MISSING
-		// 			,(SELECT ORPHANED FROM :orphaned_grouped WHERE ${config.distinct_field} = d.${config.distinct_field}) ORPHANED
-		// 			,(SELECT NOT_IN_SYNC FROM :notInSync_grouped WHERE ${config.distinct_field} = d.${config.distinct_field}) NOT_IN_SYNC
-		// 		FROM :distinct d
-		// 	`,
-		// 		{
-		// 			distinct: this.getDistinct(config, 'omega', result_omega),
-		// 			missing_grouped,
-		// 			orphaned_grouped,
-		// 			notInSync_grouped,
-		// 		}
-		// 	);
-		// 	console.table(result);
-		// }
+		// const [result_alpha, result_omega] = await Promise.all([
+		// 	this.rawQuery(knex_alpha, config.advanced_query_alpha, config.linked_name_alpha),
+		// 	this.rawQuery(knex_omega, config.advanced_query_omega, config.linked_name_omega),
+		// ]);
 
-		// console.log({ result_alpha, result_omega });
+		// eslint-disable-next-line prettier/prettier
+		const result_alpha = [{ system_name: 'CODEX', wbs_id: '123', company_code: '', position_code: '', analytical_unit: '' }];
+		// eslint-disable-next-line prettier/prettier
+		const result_omega = [{ system_name: 'HCP', wbs_id: '123', company_code: '', position_code: '', analytical_unit: '' }];
+
+		identifier_field = identifier_field.toLowerCase();
+		distinct_field = distinct_field.toLowerCase();
+		const systemFields = ['system_name', identifier_field, distinct_field];
+		const additional_fields = await Object.keys(result_alpha[0]).filter((field) => !systemFields.includes(field));
+
+		// await Promise.all([
+		// 	this.createTableAndInsert(uuid, result_alpha, systemFields, 'alpha'),
+		// 	this.createTableAndInsert(uuid, result_omega, systemFields, 'omega'),
+		// ]);
+
+		const table_alpha = `${uuid}_alpha`;
+		const table_omega = `${uuid}_omega`;
+
+		const system_names = await this.knex(table_omega).distinct('system_name');
+		for (const system_name of system_names.map((_) => _.system_name)) {
+			const history_uuid = uuidv4();
+
+			const trx = await this.knex.transaction();
+			try {
+				await this.knex(TBL_PHOENIX_HISTORY).insert({
+					uuid: history_uuid,
+					phoenix_config: uuid,
+					system_name_alpha: result_alpha[0]['system_name'],
+					system_name_omega: system_name,
+					status: 'running',
+					date_created: this.knex.fn.now(),
+					date_updated: this.knex.fn.now(),
+				});
+
+				const [missing, orphaned, notInSync, match] = await Promise.all([
+					this.findMissing({
+						system_name,
+						history_uuid,
+						identifier_field,
+						distinct_field,
+						table_alpha,
+						table_omega,
+						trx,
+					}),
+					this.findOrphaned({
+						system_name,
+						history_uuid,
+						identifier_field,
+						distinct_field,
+						table_alpha,
+						table_omega,
+						trx,
+					}),
+					this.findNotInSync({
+						system_name,
+						history_uuid,
+						identifier_field,
+						distinct_field,
+						table_alpha,
+						table_omega,
+						additional_fields,
+						trx,
+					}),
+					this.findMatch({
+						system_name,
+						history_uuid,
+						identifier_field,
+						distinct_field,
+						table_alpha,
+						table_omega,
+						additional_fields,
+						trx,
+					}),
+				]);
+
+				await trx.commit();
+
+				const { rows: summary_result } = await this.knex.raw(
+					`
+					SELECT
+						hh.*
+						,ROUND(("match"::float * 100 / "sum"::float)::NUMERIC, 2) percent
+					FROM (
+						SELECT
+							h.system_name
+							,h.:distinct_field:
+							,(SELECT COUNT(*)
+								FROM :phoenix_details:
+								WHERE system_name = h.system_name AND "distinct" = h.:distinct_field: AND history_uuid = :history_uuid AND error_type = 'MISSING'
+								) missing
+							,(SELECT COUNT(*)
+								FROM :phoenix_details:
+								WHERE system_name = h.system_name AND "distinct" = h.:distinct_field: AND history_uuid = :history_uuid AND error_type = 'ORPHANED'
+								) orphaned
+							,(SELECT COUNT(*)
+								FROM :phoenix_details:
+								WHERE system_name = h.system_name AND "distinct" = h.:distinct_field: AND history_uuid = :history_uuid AND error_type = 'NOT_IN_SYNC'
+								) not_in_sync
+							,(SELECT COUNT(*)
+								FROM :phoenix_details:
+								WHERE system_name = h.system_name AND "distinct" = h.:distinct_field: AND history_uuid = :history_uuid AND error_type = 'MATCH'
+								) "match"
+							,(SELECT COUNT(*) FROM :table_alpha: WHERE :distinct_field: = h.:distinct_field:) "sum"
+						FROM (
+							SELECT DISTINCT system_name, :distinct_field:
+							FROM :table_omega:
+							WHERE system_name = :system_name AND :distinct_field: IN (SELECT DISTINCT :distinct_field: FROM :table_alpha:)
+						) h
+						ORDER BY system_name, :distinct_field:
+					) hh
+				`,
+					{
+						history_uuid,
+						distinct_field,
+						table_omega,
+						phoenix_details: TBL_PHOENIX_DETAILS,
+						system_name,
+						phoenix_history: TBL_PHOENIX_HISTORY,
+						table_alpha,
+					}
+				);
+
+				console.table(summary_result);
+
+				// await this.knex(TBL_PHOENIX_RESULTS).insert({
+				// 	uuid: uuidv4(),
+				// 	history_uuid,
+				// 	system_name,
+				// 	distinct_field: '',
+				// });
+
+				this.logger.info('%o', {
+					missing: missing.length,
+					orphaned: orphaned.length,
+					notInSync: notInSync.length / 2,
+					match: match.length,
+				});
+				await this.knex(TBL_PHOENIX_HISTORY).where('uuid', history_uuid).update({
+					status: 'success',
+					date_updated: this.knex.fn.now(),
+				});
+			} catch (e: any) {
+				await trx.rollback();
+				await this.knex(TBL_PHOENIX_HISTORY).where('uuid', history_uuid).update({
+					status: 'error',
+					date_updated: this.knex.fn.now(),
+				});
+				if (e.message.includes(' - ')) {
+					this.logger.error(e.message.split(' - ')[1]);
+				}
+
+				this.logger.error(e.message.substring(0, 200));
+			}
+		}
+		// console.log(system_names.map((_) => _.system_name));
 	};
 }
