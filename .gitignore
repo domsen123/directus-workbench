@@ -23,7 +23,7 @@ schema.yaml
 schema.json
 .*.swp
 
-api
-app
-packages
+/api
+/app
+/packages
 *.sqlite
