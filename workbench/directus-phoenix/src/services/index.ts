@@ -8,19 +8,9 @@ import { TBL_PHOENIX_DETAILS, TBL_PHOENIX_HISTORY, TBL_PHOENIX_RESULTS } from '.
 import { FindItemsExtended, FindItemsOptions } from '../types';
 
 export class PhoenixService {
-	private started_at = new Date();
-	private finished_at: Date | undefined;
-
 	private _config = 'phoenix';
 	private _connections = 'external_connections';
 	private _serviceAccounts = 'service_accounts';
-
-	private _result_alpha: any[] | undefined;
-	private _result_omega: any[] | undefined;
-
-	private _distinct_alpha: any[] | undefined;
-	private _distinct_omega: any[] | undefined;
-	private _base_alpha: any[] | undefined;
 
 	constructor(private knex: Knex, private logger: Logger, private bree: any) {}
 
@@ -41,10 +31,11 @@ export class PhoenixService {
 	private getServiceAccount = async (uuid: string) =>
 		await this.serviceAccount.select('username', 'password').where('uuid', uuid).first();
 
-	private rawQueryString = (query: string, linked_server?: string) =>
-		linked_server
+	private rawQueryString = (query: string, linked_server?: string): string => {
+		return linked_server
 			? `SELECT * FROM OPENQUERY(${linked_server}, '${query.trim().replaceAll("'", "''")}');`
 			: query.trim();
+	};
 
 	private rawQuery = async (knex: Knex, query: string, linked_server?: string): Promise<Record<string, string>[]> => {
 		const rawQuery = this.rawQueryString(query, linked_server);
@@ -281,13 +272,13 @@ export class PhoenixService {
 			)
 		`;
 
-		const { rows } = await this.knex.raw(query_notInSync, {
-			system_name,
-			identifier_field,
-			distinct_field,
-			table_alpha,
-			table_omega,
-		});
+		// const { rows } = await this.knex.raw(query_notInSync, {
+		// 	system_name,
+		// 	identifier_field,
+		// 	distinct_field,
+		// 	table_alpha,
+		// 	table_omega,
+		// });
 
 		const { rows: summary } = await this.knex.raw(
 			`
@@ -301,16 +292,16 @@ export class PhoenixService {
 			{ system_name, identifier_field, distinct_field, table_alpha, table_omega }
 		);
 
-		const inserts = summary.map((data: any) => ({
+		const inserts = summary.map((entry: any) => ({
 			uuid: uuidv4(),
 			system_name,
 			history_uuid,
-			identifier: data[identifier_field],
+			identifier: entry[identifier_field],
 			identifier_description: identifier_field,
-			distinct: data[distinct_field],
+			distinct: entry[distinct_field],
 			distinct_description: distinct_field,
 			error_type: 'NOT_IN_SYNC',
-			data,
+			data: JSON.stringify(entry.data),
 			date_created: this.knex.fn.now(),
 		}));
 		if (inserts && inserts.length > 0) {
@@ -319,7 +310,7 @@ export class PhoenixService {
 			}
 		}
 
-		return rows;
+		return summary;
 	};
 
 	// private findMatch = async ({
@@ -416,7 +407,7 @@ export class PhoenixService {
 					date_updated: this.knex.fn.now(),
 				});
 
-				const [missing, orphaned, notInSync] = await Promise.all([
+				await Promise.all([
 					this.findMissing({
 						system_name,
 						history_uuid,
@@ -445,75 +436,9 @@ export class PhoenixService {
 						additional_fields,
 						trx,
 					}),
-					// this.findMatch({
-					// 	system_name,
-					// 	history_uuid,
-					// 	identifier_field,
-					// 	distinct_field,
-					// 	table_alpha,
-					// 	table_omega,
-					// 	additional_fields,
-					// 	trx,
-					// }),
 				]);
 
 				await trx.commit();
-				// await this.knex.raw(
-				// 	`
-				// 	INSERT INTO phoenix_results(id, history_uuid, system_name, distinct_field, distinct_field_description, date_created, missing_count, orphaned_count, not_in_sync_count, match_percent)
-				// 	SELECT
-				// 		 gen_random_uuid() as uuid
-				// 		,'${history_uuid}' as history_uuid
-				// 		,hh.system_name
-				// 		,hh.:distinct_field: as distinct_field
-				// 		,:distinct_field: as distinct_field_description
-				// 		,:now: as date_created
-				// 		,hh.missing_count
-				// 		,hh.orphaned_count
-				// 		,hh.not_in_sync_count
-				// 		,ROUND((("sum"::float - (missing_count::float + not_in_sync_count::float)) * 100 / "sum"::float)::NUMERIC, 2) match_percent
-				// 	FROM (
-				// 		SELECT
-				// 			h.system_name
-				// 			,h.:distinct_field:
-				// 			,(SELECT COUNT(*)
-				// 				FROM :phoenix_details:
-				// 				WHERE system_name = h.system_name AND "distinct" = h.:distinct_field: AND history_uuid = :history_uuid AND error_type = 'MISSING'
-				// 				)::NUMERIC missing_count
-				// 			,(SELECT COUNT(*)
-				// 				FROM :phoenix_details:
-				// 				WHERE system_name = h.system_name AND "distinct" = h.:distinct_field: AND history_uuid = :history_uuid AND error_type = 'ORPHANED'
-				// 				)::NUMERIC orphaned_count
-				// 			,(SELECT COUNT(*)
-				// 				FROM :phoenix_details:
-				// 				WHERE system_name = h.system_name AND "distinct" = h.:distinct_field: AND history_uuid = :history_uuid AND error_type = 'NOT_IN_SYNC'
-				// 				)::NUMERIC not_in_sync_count
-				// 			,(SELECT COUNT(*) FROM :table_alpha: WHERE :distinct_field: = h.:distinct_field:)::NUMERIC "sum"
-				// 		FROM (
-				// 			SELECT DISTINCT system_name, :distinct_field:
-				// 			FROM :table_omega:
-				// 			WHERE system_name = :system_name AND :distinct_field: IN (SELECT DISTINCT :distinct_field: FROM :table_alpha:)
-				// 		) h
-				// 		ORDER BY system_name, :distinct_field:
-				// 	) hh
-				// `,
-				// 	{
-				// 		history_uuid,
-				// 		distinct_field,
-				// 		table_omega,
-				// 		phoenix_details: TBL_PHOENIX_DETAILS,
-				// 		system_name,
-				// 		phoenix_history: TBL_PHOENIX_HISTORY,
-				// 		table_alpha,
-				// 		now: this.knex.fn.now(),
-				// 	}
-				// );
-				const subselect = this.knex
-					.count('*')
-					.from(TBL_PHOENIX_DETAILS)
-					.where('system_name', system_name)
-					.andWhere('history_uuid', history_uuid)
-					.andWhere(this.knex.raw(`"distinct" = base.:distinct_field:`, { distinct_field }));
 
 				const results = await this.knex
 					.select(
@@ -594,10 +519,12 @@ export class PhoenixService {
 					date_updated: this.knex.fn.now(),
 				});
 				if (e.message.includes(' - ')) {
-					// this.logger.error(e.message.split(' - ')[1]);
+					this.logger.error(e.message.split(' - ')[1]);
+				} else {
+					this.logger.error(e.message);
 				}
-				this.logger.error(e.message);
 			}
 		}
+		// await Promise.all([this.knex.schema.dropTable(table_alpha), this.knex.schema.dropTable(table_omega)]);
 	};
 }
