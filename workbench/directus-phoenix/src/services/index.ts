@@ -322,56 +322,56 @@ export class PhoenixService {
 		return rows;
 	};
 
-	private findMatch = async ({
-		history_uuid,
-		system_name,
-		identifier_field,
-		distinct_field,
-		table_alpha,
-		table_omega,
-		additional_fields,
-		trx,
-	}: FindItemsExtended) => {
-		const query_match = `
-			SELECT alpha.*, 'MATCH' error_type
-			FROM (
-				SELECT *
-				FROM :table_alpha:
-				WHERE :distinct_field: IN (SELECT DISTINCT :distinct_field: FROM :table_omega: WHERE system_name = :system_name)
-			) alpha
-			JOIN :table_omega: omega ON alpha.:identifier_field: = omega.:identifier_field: AND omega.system_name = :system_name AND (
-				${additional_fields.map((f) => `alpha.${f} = omega.${f}`).join(' OR ')}
-		)`;
+	// private findMatch = async ({
+	// 	history_uuid,
+	// 	system_name,
+	// 	identifier_field,
+	// 	distinct_field,
+	// 	table_alpha,
+	// 	table_omega,
+	// 	additional_fields,
+	// 	trx,
+	// }: FindItemsExtended) => {
+	// 	const query_match = `
+	// 		SELECT alpha.*, 'MATCH' error_type
+	// 		FROM (
+	// 			SELECT *
+	// 			FROM :table_alpha:
+	// 			WHERE :distinct_field: IN (SELECT DISTINCT :distinct_field: FROM :table_omega: WHERE system_name = :system_name)
+	// 		) alpha
+	// 		JOIN :table_omega: omega ON alpha.:identifier_field: = omega.:identifier_field: AND omega.system_name = :system_name AND (
+	// 			${additional_fields.map((f) => `alpha.${f} = omega.${f}`).join(' OR ')}
+	// 	)`;
 
-		const { rows } = await this.knex.raw(query_match, {
-			system_name,
-			identifier_field,
-			distinct_field,
-			table_alpha,
-			table_omega,
-		});
+	// 	const { rows } = await this.knex.raw(query_match, {
+	// 		system_name,
+	// 		identifier_field,
+	// 		distinct_field,
+	// 		table_alpha,
+	// 		table_omega,
+	// 	});
 
-		const date_created = this.knex.fn.now();
-		const inserts = rows.map((data: any) => ({
-			uuid: uuidv4(),
-			system_name,
-			history_uuid,
-			identifier: data[identifier_field],
-			identifier_description: identifier_field,
-			distinct: data[distinct_field],
-			distinct_description: distinct_field,
-			error_type: 'MATCH',
-			data,
-			date_created,
-		}));
-		if (inserts && inserts.length > 0) {
-			for (const insert of getChunks(inserts, 65000, 0)) {
-				await trx(TBL_PHOENIX_DETAILS).insert(insert);
-			}
-		}
+	// 	const date_created = this.knex.fn.now();
+	// 	const inserts = rows.map((data: any) => ({
+	// 		uuid: uuidv4(),
+	// 		system_name,
+	// 		history_uuid,
+	// 		identifier: data[identifier_field],
+	// 		identifier_description: identifier_field,
+	// 		distinct: data[distinct_field],
+	// 		distinct_description: distinct_field,
+	// 		error_type: 'MATCH',
+	// 		data,
+	// 		date_created,
+	// 	}));
+	// 	if (inserts && inserts.length > 0) {
+	// 		for (const insert of getChunks(inserts, 65000, 0)) {
+	// 			await trx(TBL_PHOENIX_DETAILS).insert(insert);
+	// 		}
+	// 	}
 
-		return rows;
-	};
+	// 	return rows;
+	// };
 
 	private advanced_phoenix = async (config: any, knex_alpha: Knex, knex_omega: Knex) => {
 		const { uuid } = config;
@@ -416,7 +416,7 @@ export class PhoenixService {
 					date_updated: this.knex.fn.now(),
 				});
 
-				const [missing, orphaned, notInSync, match] = await Promise.all([
+				const [missing, orphaned, notInSync] = await Promise.all([
 					this.findMissing({
 						system_name,
 						history_uuid,
@@ -445,80 +445,144 @@ export class PhoenixService {
 						additional_fields,
 						trx,
 					}),
-					this.findMatch({
-						system_name,
-						history_uuid,
-						identifier_field,
-						distinct_field,
-						table_alpha,
-						table_omega,
-						additional_fields,
-						trx,
-					}),
+					// this.findMatch({
+					// 	system_name,
+					// 	history_uuid,
+					// 	identifier_field,
+					// 	distinct_field,
+					// 	table_alpha,
+					// 	table_omega,
+					// 	additional_fields,
+					// 	trx,
+					// }),
 				]);
 
 				await trx.commit();
+				// await this.knex.raw(
+				// 	`
+				// 	INSERT INTO phoenix_results(id, history_uuid, system_name, distinct_field, distinct_field_description, date_created, missing_count, orphaned_count, not_in_sync_count, match_percent)
+				// 	SELECT
+				// 		 gen_random_uuid() as uuid
+				// 		,'${history_uuid}' as history_uuid
+				// 		,hh.system_name
+				// 		,hh.:distinct_field: as distinct_field
+				// 		,:distinct_field: as distinct_field_description
+				// 		,:now: as date_created
+				// 		,hh.missing_count
+				// 		,hh.orphaned_count
+				// 		,hh.not_in_sync_count
+				// 		,ROUND((("sum"::float - (missing_count::float + not_in_sync_count::float)) * 100 / "sum"::float)::NUMERIC, 2) match_percent
+				// 	FROM (
+				// 		SELECT
+				// 			h.system_name
+				// 			,h.:distinct_field:
+				// 			,(SELECT COUNT(*)
+				// 				FROM :phoenix_details:
+				// 				WHERE system_name = h.system_name AND "distinct" = h.:distinct_field: AND history_uuid = :history_uuid AND error_type = 'MISSING'
+				// 				)::NUMERIC missing_count
+				// 			,(SELECT COUNT(*)
+				// 				FROM :phoenix_details:
+				// 				WHERE system_name = h.system_name AND "distinct" = h.:distinct_field: AND history_uuid = :history_uuid AND error_type = 'ORPHANED'
+				// 				)::NUMERIC orphaned_count
+				// 			,(SELECT COUNT(*)
+				// 				FROM :phoenix_details:
+				// 				WHERE system_name = h.system_name AND "distinct" = h.:distinct_field: AND history_uuid = :history_uuid AND error_type = 'NOT_IN_SYNC'
+				// 				)::NUMERIC not_in_sync_count
+				// 			,(SELECT COUNT(*) FROM :table_alpha: WHERE :distinct_field: = h.:distinct_field:)::NUMERIC "sum"
+				// 		FROM (
+				// 			SELECT DISTINCT system_name, :distinct_field:
+				// 			FROM :table_omega:
+				// 			WHERE system_name = :system_name AND :distinct_field: IN (SELECT DISTINCT :distinct_field: FROM :table_alpha:)
+				// 		) h
+				// 		ORDER BY system_name, :distinct_field:
+				// 	) hh
+				// `,
+				// 	{
+				// 		history_uuid,
+				// 		distinct_field,
+				// 		table_omega,
+				// 		phoenix_details: TBL_PHOENIX_DETAILS,
+				// 		system_name,
+				// 		phoenix_history: TBL_PHOENIX_HISTORY,
+				// 		table_alpha,
+				// 		now: this.knex.fn.now(),
+				// 	}
+				// );
+				const subselect = this.knex
+					.count('*')
+					.from(TBL_PHOENIX_DETAILS)
+					.where('system_name', system_name)
+					.andWhere('history_uuid', history_uuid)
+					.andWhere(this.knex.raw(`"distinct" = base.:distinct_field:`, { distinct_field }));
 
-				const { rows: summary_result } = await this.knex.raw(
-					`
-					SELECT
-						hh.*
-						,ROUND(("match"::float * 100 / "sum"::float)::NUMERIC, 2) percent
-					FROM (
-						SELECT
-							h.system_name
-							,h.:distinct_field:
-							,(SELECT COUNT(*)
-								FROM :phoenix_details:
-								WHERE system_name = h.system_name AND "distinct" = h.:distinct_field: AND history_uuid = :history_uuid AND error_type = 'MISSING'
-								) missing
-							,(SELECT COUNT(*)
-								FROM :phoenix_details:
-								WHERE system_name = h.system_name AND "distinct" = h.:distinct_field: AND history_uuid = :history_uuid AND error_type = 'ORPHANED'
-								) orphaned
-							,(SELECT COUNT(*)
-								FROM :phoenix_details:
-								WHERE system_name = h.system_name AND "distinct" = h.:distinct_field: AND history_uuid = :history_uuid AND error_type = 'NOT_IN_SYNC'
-								) not_in_sync
-							,(SELECT COUNT(*)
-								FROM :phoenix_details:
-								WHERE system_name = h.system_name AND "distinct" = h.:distinct_field: AND history_uuid = :history_uuid AND error_type = 'MATCH'
-								) "match"
-							,(SELECT COUNT(*) FROM :table_alpha: WHERE :distinct_field: = h.:distinct_field:) "sum"
-						FROM (
-							SELECT DISTINCT system_name, :distinct_field:
-							FROM :table_omega:
-							WHERE system_name = :system_name AND :distinct_field: IN (SELECT DISTINCT :distinct_field: FROM :table_alpha:)
-						) h
-						ORDER BY system_name, :distinct_field:
-					) hh
-				`,
-					{
-						history_uuid,
-						distinct_field,
-						table_omega,
-						phoenix_details: TBL_PHOENIX_DETAILS,
-						system_name,
-						phoenix_history: TBL_PHOENIX_HISTORY,
-						table_alpha,
-					}
-				);
+				const results = await this.knex
+					.select(
+						this.knex.raw(`gen_random_uuid() as id`),
+						'system_name',
+						this.knex.raw(`'${history_uuid}'::uuid as history_uuid`),
+						this.knex.raw(`:distinct_field: as distinct_field`, { distinct_field }),
+						this.knex.raw(`'${distinct_field}' as distinct_field_description`),
+						this.knex.raw(`:now: as date_created`, { now: this.knex.fn.now() }),
+						'missing_count',
+						'orphaned_count',
+						'not_in_sync_count',
+						this.knex.raw(
+							`ROUND(((sum - (missing_count + not_in_sync_count)) * 100 / sum)::numeric, 2)::float as match_percent`
+						)
+					)
+					.from(
+						this.knex
+							.select(
+								'system_name',
+								distinct_field,
+								this.knex
+									.select(this.knex.raw('count(*)::float'))
+									.from(TBL_PHOENIX_DETAILS)
+									.where('system_name', system_name)
+									.andWhere('history_uuid', history_uuid)
+									.andWhere(this.knex.raw(`"distinct" = base.:distinct_field:`, { distinct_field }))
+									.andWhere('error_type', 'MISSING')
+									.as('missing_count'),
+								this.knex
+									.select(this.knex.raw('count(*)::float'))
+									.from(TBL_PHOENIX_DETAILS)
+									.where('system_name', system_name)
+									.andWhere('history_uuid', history_uuid)
+									.andWhere(this.knex.raw(`"distinct" = base.:distinct_field:`, { distinct_field }))
+									.andWhere('error_type', 'ORPHANED')
+									.as('orphaned_count'),
+								this.knex
+									.select(this.knex.raw('count(*)::float'))
+									.from(TBL_PHOENIX_DETAILS)
+									.where('system_name', system_name)
+									.andWhere('history_uuid', history_uuid)
+									.andWhere(this.knex.raw(`"distinct" = base.:distinct_field:`, { distinct_field }))
+									.andWhere('error_type', 'NOT_IN_SYNC')
+									.as('not_in_sync_count'),
+								this.knex
+									.select(this.knex.raw('count(*)::float'))
+									.from(table_alpha)
+									.where(this.knex.raw(`:distinct_field: = base.:distinct_field:`, { distinct_field }))
+									.as('sum')
+							)
+							.from(
+								this.knex
+									.select('system_name', distinct_field)
+									.from(
+										this.knex
+											.distinct('system_name', distinct_field)
+											.from(table_omega)
+											.where('system_name', system_name)
+											.whereIn(distinct_field, this.knex.distinct(distinct_field).from(table_alpha))
+											.as('h')
+									)
+									.as('base')
+							)
+							.as('help')
+					);
 
-				console.table(summary_result);
+				await this.knex(TBL_PHOENIX_RESULTS).insert(results);
 
-				// await this.knex(TBL_PHOENIX_RESULTS).insert({
-				// 	uuid: uuidv4(),
-				// 	history_uuid,
-				// 	system_name,
-				// 	distinct_field: '',
-				// });
-
-				this.logger.info('%o', {
-					missing: missing.length,
-					orphaned: orphaned.length,
-					notInSync: notInSync.length / 2,
-					match: match.length,
-				});
 				await this.knex(TBL_PHOENIX_HISTORY).where('uuid', history_uuid).update({
 					status: 'success',
 					date_updated: this.knex.fn.now(),
@@ -530,12 +594,10 @@ export class PhoenixService {
 					date_updated: this.knex.fn.now(),
 				});
 				if (e.message.includes(' - ')) {
-					this.logger.error(e.message.split(' - ')[1]);
+					// this.logger.error(e.message.split(' - ')[1]);
 				}
-
-				this.logger.error(e.message.substring(0, 200));
+				this.logger.error(e.message);
 			}
 		}
-		// console.log(system_names.map((_) => _.system_name));
 	};
 }
