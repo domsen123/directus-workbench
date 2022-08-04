@@ -2,7 +2,8 @@ import type { Knex } from 'knex';
 
 export interface FindItemsOptions {
 	system_name: string;
-	history_uuid: string;
+	external_system: string;
+	phoenix_history: string;
 	identifier_field: string;
 	distinct_field: string;
 	table_alpha: string;

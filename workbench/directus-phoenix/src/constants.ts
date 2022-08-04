@@ -1,3 +1,6 @@
+export const SCHEMA_PHOENIX = 'phoenix';
+
+export const TBL_MISC_EXTERNAL_SYSTEMS = 'external_systems';
 export const TBL_MISC_EXTERNAL_CONNECTIONS = 'external_connections';
 export const TBL_MISC_SERVICE_ACCOUNTS = 'service_accounts';
 

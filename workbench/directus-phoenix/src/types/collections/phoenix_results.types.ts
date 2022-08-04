@@ -1,7 +1,7 @@
 export interface PhoenixResultsCollection {
 	uuid: string;
-	date_created: string;
-	history: string;
+	date_created: Date;
+	phoenix_history: string;
 	system_name: string;
 	distinct_field: string;
 	distinct_field_description: string;

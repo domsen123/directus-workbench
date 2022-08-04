@@ -14,8 +14,12 @@ type DB_TYPE =
 	| 'time'
 	| 'timestamp'
 	| 'json'
+	| 'jsonb'
 	| 'uuid'
-	| 'decimal';
+	| 'decimal'
+	| 'text';
+
+type StringOrJson = string | Record<string, any>[] | Record<string, any>;
 
 export interface DirectusFieldRelation {
 	references: string;
@@ -32,21 +36,37 @@ export interface DirectusFieldDatabaseOptions {
 	relation?: DirectusFieldRelation;
 	default_value?: string | 'current_timestamp';
 }
+
+export interface DirectusPreset {
+	bookmark?: string;
+	user?: string;
+	role?: string;
+	collection: string;
+	search?: string;
+	layout: 'tabular' | 'cards';
+	layout_query: StringOrJson;
+	layout_options: StringOrJson;
+	refresh_interval?: number;
+	filter?: StringOrJson;
+	icon?: string;
+	color?: string;
+}
+
 export interface DirectusField {
 	collection: string;
 	field: string;
 	special?: string;
-	interface?: string;
-	options?: string;
-	display?: string;
-	display_options?: string;
+	interface?: string | null;
+	options?: StringOrJson;
+	display?: string | null;
+	display_options?: StringOrJson;
 	readonly?: boolean;
 	hidden?: boolean;
 	sort?: number;
 	width?: 'half' | 'full';
-	//translations?: any;
+	translations?: StringOrJson;
 	note?: string;
-	conditions?: string;
+	conditions?: StringOrJson;
 	required?: boolean;
 	db_options: DirectusFieldDatabaseOptions;
 	// group?: any;
@@ -58,10 +78,10 @@ export interface DirectusCollection {
 	collection: string;
 	icon?: string;
 	note?: string;
-	//display_template?: any;
+	display_template?: StringOrJson;
 	hidden?: boolean;
 	singleton?: boolean;
-	//translations?: any;
+	translations?: StringOrJson;
 	archive_field?: string;
 	archive_app_filter?: boolean;
 	archive_value?: string;
@@ -74,4 +94,5 @@ export interface DirectusCollection {
 	group?: string;
 	collapse?: 'open' | 'closed' | 'locked';
 	fields: DirectusField[];
+	presets?: DirectusPreset[];
 }

@@ -1,10 +1,17 @@
-import type { DirectusCollection, DirectusField } from '../types/utils';
+import type { DirectusCollection, DirectusField, DirectusPreset } from '../types/utils';
 import type { Knex } from 'knex';
+
+const parseStringOrJson = (v?: any): string | null => {
+	if (!v) return null;
+	else return typeof v === 'string' ? v : JSON.stringify(v);
+};
 
 const getFieldDefaults = (): Partial<DirectusField> => ({
 	readonly: false,
 	hidden: false,
 	width: 'full',
+	interface: 'input',
+	display: 'raw',
 	required: false,
 });
 
@@ -37,51 +44,93 @@ const createField = async (_knex: Knex | Knex.Transaction<any, any[]>, options: 
 		...getFieldDefaults(),
 		...options,
 	};
-	await knex('directus_fields').insert({
-		collection: meta.collection,
-		field: meta.field,
-		special: meta.special,
-		interface: meta.interface,
-		//options: meta.options,
-		display: meta.display,
-		//display_options: meta.display_options,
-		readonly: meta.readonly,
-		hidden: meta.hidden,
-		sort: meta.sort,
-		width: meta.width,
-		//translations: meta.translations,
-		note: meta.note,
-		conditions: meta.conditions,
-		required: meta.required,
-		// group: meta.group,
-		// validation: meta.validation,
-		// validation_message: meta.validation_message,
-	});
-
-	if (meta.db_options?.relation) {
-		await knex('directus_relations').insert({
-			many_collection: meta.collection,
-			many_field: meta.field,
-			one_collection: meta.db_options.relation.collection,
-			one_deselect_action: 'nullify',
+	try {
+		await knex('directus_fields').insert({
+			collection: meta.collection,
+			field: meta.field,
+			special: meta.special,
+			interface: meta.interface,
+			options: parseStringOrJson(meta.options),
+			display: meta.display,
+			display_options: parseStringOrJson(meta.display_options),
+			readonly: meta.readonly,
+			hidden: meta.hidden,
+			sort: meta.sort,
+			width: meta.width,
+			translations: parseStringOrJson(meta.translations),
+			note: meta.note,
+			conditions: parseStringOrJson(meta.conditions),
+			required: meta.required,
+			// group: meta.group,
+			// validation: meta.validation,
+			// validation_message: meta.validation_message,
 		});
+
+		if (meta.db_options?.relation) {
+			await knex('directus_relations').insert({
+				many_collection: meta.collection,
+				many_field: meta.field,
+				one_collection: meta.db_options.relation.collection,
+				one_deselect_action: 'nullify',
+			});
+		}
+		if (!_knex.isTransaction) await knex.commit();
+	} catch (e: any) {
+		if (!_knex.isTransaction) await knex.rollback();
+		else throw e;
+	}
+};
+
+export const createPreset = async (_knex: Knex | Knex.Transaction<any, any[]>, options: DirectusPreset) => {
+	const knex: Knex.Transaction<any, any[]> = _knex.isTransaction
+		? (_knex as Knex.Transaction<any, any[]>)
+		: await _knex.transaction();
+
+	const defaults: Partial<DirectusPreset> = {
+		layout: 'tabular',
+		icon: 'bookmark_outline',
+	};
+	const meta: DirectusPreset = {
+		...defaults,
+		...options,
+	};
+	try {
+		await knex('directus_presets').insert({
+			bookmark: meta.bookmark,
+			user: meta.user,
+			role: meta.role,
+			collection: meta.collection,
+			layout_query: parseStringOrJson(meta.layout_query),
+			layout_options: parseStringOrJson(meta.layout_options),
+			refresh_interval: meta.refresh_interval,
+			filter: meta.filter,
+			icon: meta.icon,
+			color: meta.color,
+		});
+		if (!_knex.isTransaction) await knex.commit();
+	} catch (e: any) {
+		if (!_knex.isTransaction) await knex.rollback();
+		else throw e;
 	}
 };
 
 export const addField = async (_knex: Knex | Knex.Transaction<any, any[]>, options: DirectusField) => {
 	const { collection } = options;
+
 	const knex: Knex.Transaction<any, any[]> = _knex.isTransaction
 		? (_knex as Knex.Transaction<any, any[]>)
 		: await _knex.transaction();
+
 	try {
 		await createField(knex, options);
 
 		await knex.schema.alterTable(collection, (table) => {
 			createDatabaseField(knex, table, options);
 		});
-		await knex.commit();
+		if (!_knex.isTransaction) await knex.commit();
 	} catch (e: any) {
-		await knex.rollback();
+		if (!_knex.isTransaction) await knex.rollback();
+		else throw e;
 	}
 };
 
@@ -110,10 +159,10 @@ export const createCollection = async (_knex: Knex | Knex.Transaction<any, any[]
 			collection: meta.collection,
 			icon: meta.icon,
 			note: meta.note,
-			// display_template: meta.display_template,
+			display_template: parseStringOrJson(meta.display_template),
 			hidden: meta.hidden,
 			singleton: meta.singleton,
-			// translations?: meta.translations,
+			translations: parseStringOrJson(meta.translations),
 			archive_field: meta.archive_field,
 			archive_app_filter: meta.archive_app_filter,
 			archive_value: meta.archive_value,
@@ -127,11 +176,14 @@ export const createCollection = async (_knex: Knex | Knex.Transaction<any, any[]
 			collapse: meta.collapse,
 		});
 
-		await Promise.all(meta.fields.map((field) => createField(knex, field)));
-		await knex.commit();
-	} catch (e) {
-		await knex.rollback();
-		throw e;
+		await Promise.all(meta.fields.map((field, index) => createField(knex, { sort: index, ...field })));
+		if (meta.presets && meta.presets.length > 0) {
+			await Promise.all(meta.presets.map((preset) => createPreset(knex, preset)));
+		}
+		if (!_knex.isTransaction) await knex.commit();
+	} catch (e: any) {
+		if (!_knex.isTransaction) await knex.rollback();
+		else throw e;
 	}
 };
 
@@ -139,6 +191,7 @@ export const renameCollection = async (knex: Knex, old_name: string, new_name: s
 	await knex('directus_collections').where({ collection: old_name }).update({ collection: new_name });
 	await knex('directus_fields').where({ collection: old_name }).update({ collection: new_name });
 	await knex('directus_revisions').where({ collection: old_name }).update({ collection: new_name });
+	await knex('directus_presets').where({ collection: old_name }).update({ collection: new_name });
 	await knex('directus_relations').where({ many_collection: old_name }).update({ many_collection: new_name });
 	await knex('directus_relations').where({ one_collection: old_name }).update({ one_collection: new_name });
 	await knex('directus_activity').where({ collection: old_name }).update({ collection: new_name });
@@ -151,6 +204,7 @@ export const dropCollection = async (knex: Knex, collection: string) => {
 	await knex('directus_collections').where({ collection }).delete();
 	await knex('directus_fields').where({ collection }).delete();
 	await knex('directus_revisions').where({ collection }).delete();
+	await knex('directus_presets').where({ collection }).delete();
 	await knex('directus_relations').where({ many_collection: collection }).delete();
 	await knex('directus_relations').where({ one_collection: collection }).delete();
 	await knex('directus_activity').where({ collection }).delete();
@@ -248,3 +302,12 @@ export const defaultUpdatedBy = (collection: string): DirectusField => ({
 		},
 	},
 });
+
+export const defaultAuthors = (collection: string): DirectusField[] => [
+	defaultCreatedBy(collection),
+	defaultUpdatedBy(collection),
+];
+export const defaultTimestamps = (collection: string): DirectusField[] => [
+	defaultCreatedAt(collection),
+	defaultUpdatedAt(collection),
+];

@@ -14,8 +14,8 @@ export interface PhoenixConfigCollection {
 
 export interface PhoenixConfigAdvancedCollection extends PhoenixConfigCollection {
 	advanced_mode: true;
-	advanced_query_alpha: string;
-	advanced_query_omega: string;
+	query_alpha: string;
+	query_omega: string;
 }
 
 export interface PhoenixConfigBasicCollection extends PhoenixConfigCollection {
