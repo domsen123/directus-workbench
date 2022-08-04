@@ -3,24 +3,27 @@ import { getChunks } from '../utils';
 import type { Knex } from 'knex';
 import type { Logger } from 'pino';
 import { v4 as uuidv4 } from 'uuid';
-import { TBL_PHOENIX_DETAILS, TBL_PHOENIX_HISTORY, TBL_PHOENIX_RESULTS } from '../constants';
+import {
+	TBL_MISC_EXTERNAL_CONNECTIONS,
+	TBL_MISC_SERVICE_ACCOUNTS,
+	TBL_PHOENIX_CONFIG,
+	TBL_PHOENIX_DETAILS,
+	TBL_PHOENIX_HISTORY,
+	TBL_PHOENIX_RESULTS,
+} from '../constants';
 import { FindItemsExtended, FindItemsOptions } from '../types';
 
 export class PhoenixService {
-	private _config = 'phoenix';
-	private _connections = 'external_connections';
-	private _serviceAccounts = 'service_accounts';
-
-	constructor(private knex: Knex, private logger: Logger, private bree: any) {}
+	constructor(private knex: Knex, private logger: Logger, private mailService: any) {}
 
 	private get config() {
-		return this.knex(this._config);
+		return this.knex(TBL_PHOENIX_CONFIG);
 	}
 	private get connection() {
-		return this.knex(this._connections);
+		return this.knex(TBL_MISC_EXTERNAL_CONNECTIONS);
 	}
 	private get serviceAccount() {
-		return this.knex(this._serviceAccounts);
+		return this.knex(TBL_MISC_SERVICE_ACCOUNTS);
 	}
 	private sleep = async (seconds: number) => new Promise((resolve) => setTimeout(resolve, 1000 * seconds));
 
@@ -271,14 +274,6 @@ export class PhoenixService {
 			)
 		`;
 
-		// const { rows } = await this.knex.raw(query_notInSync, {
-		// 	system_name,
-		// 	identifier_field,
-		// 	distinct_field,
-		// 	table_alpha,
-		// 	table_omega,
-		// });
-
 		const { rows: summary } = await this.knex.raw(
 			`
 			SELECT
@@ -367,25 +362,25 @@ export class PhoenixService {
 		const { uuid } = config;
 		let { identifier_field, distinct_field } = config;
 
-		// const [result_alpha, result_omega] = await Promise.all([
-		// 	this.rawQuery(knex_alpha, config.advanced_query_alpha, config.linked_name_alpha),
-		// 	this.rawQuery(knex_omega, config.advanced_query_omega, config.linked_name_omega),
-		// ]);
+		const [result_alpha, result_omega] = await Promise.all([
+			this.rawQuery(knex_alpha, config.advanced_query_alpha, config.linked_name_alpha),
+			this.rawQuery(knex_omega, config.advanced_query_omega, config.linked_name_omega),
+		]);
 
-		// eslint-disable-next-line prettier/prettier
-		const result_alpha = [{ system_name: 'CODEX', wbs_id: '123', company_code: '', position_code: '', analytical_unit: '' }];
-		// eslint-disable-next-line prettier/prettier
-		const result_omega = [{ system_name: 'HCP', wbs_id: '123', company_code: '', position_code: '', analytical_unit: '' }];
+		// // eslint-disable-next-line prettier/prettier
+		// const result_alpha = [{ system_name: 'CODEX', wbs_id: '123', company_code: '', position_code: '', analytical_unit: '' }];
+		// // eslint-disable-next-line prettier/prettier
+		// const result_omega = [{ system_name: 'HCP', wbs_id: '123', company_code: '', position_code: '', analytical_unit: '' }];
 
 		identifier_field = identifier_field.toLowerCase();
 		distinct_field = distinct_field.toLowerCase();
 		const systemFields = ['system_name', identifier_field, distinct_field];
 		const additional_fields = await Object.keys(result_alpha[0]).filter((field) => !systemFields.includes(field));
 
-		// await Promise.all([
-		// 	this.createTableAndInsert(uuid, result_alpha, systemFields, 'alpha'),
-		// 	this.createTableAndInsert(uuid, result_omega, systemFields, 'omega'),
-		// ]);
+		await Promise.all([
+			this.createTableAndInsert(uuid, result_alpha, systemFields, 'alpha'),
+			this.createTableAndInsert(uuid, result_omega, systemFields, 'omega'),
+		]);
 
 		const table_alpha = `${uuid}_alpha`;
 		const table_omega = `${uuid}_omega`;
@@ -524,6 +519,6 @@ export class PhoenixService {
 				}
 			}
 		}
-		// await Promise.all([this.knex.schema.dropTable(table_alpha), this.knex.schema.dropTable(table_omega)]);
+		await Promise.all([this.knex.schema.dropTable(table_alpha), this.knex.schema.dropTable(table_omega)]);
 	};
 }
