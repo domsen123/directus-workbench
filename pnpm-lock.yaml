@@ -925,6 +925,7 @@ importers:
       react-native-fetch-blob: ^0.10.8
       tedious: ^15.0.0
       uuid: ^8.3.2
+      vue: 3.2.36
     dependencies:
       '@directus/extensions-sdk': link:../../packages/extensions-sdk
       '@directus/sdk': 10.1.2
@@ -934,6 +935,7 @@ importers:
       react-native-fetch-blob: 0.10.8
       tedious: 15.0.1
       uuid: 8.3.2
+      vue: 3.2.36
     devDependencies:
       '@types/lodash': 4.14.182
       '@types/pino': 6.3.12

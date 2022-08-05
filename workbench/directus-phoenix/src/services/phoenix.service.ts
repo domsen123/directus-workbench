@@ -49,6 +49,7 @@ export class PhoenixService {
 	};
 
 	public start = async (uuid: string) => {
+		this.logger.debug(`START`);
 		const config = await this.config.where('uuid', uuid).first();
 		const connection_alpha = await this.getConnection(config.connection_alpha);
 		const connection_omega = await this.getConnection(config.connection_omega);
@@ -495,7 +496,7 @@ export class PhoenixService {
 				console.error(e);
 			}
 		}
-		this.logger.info(`FINISHED!`);
-		// await Promise.all([this.knex.schema.dropTable(table_alpha), this.knex.schema.dropTable(table_omega)]);
+		await Promise.all([this.knex.schema.dropTable(table_alpha), this.knex.schema.dropTable(table_omega)]);
+		this.logger.debug(`FINISHED!`);
 	};
 }
