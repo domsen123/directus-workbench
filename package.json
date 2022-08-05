@@ -19,7 +19,8 @@
 		"cli": "cross-env NODE_ENV=development SERVE_APP=false DOTENV_CONFIG_PATH=api/.env ts-node -r dotenv/config --script-mode --transpile-only api/src/cli/run.ts",
 		"workbench:dev": "$_ run workbench:dev:server & $_ run workbench:dev:client",
 		"workbench:dev:server": "pnpm -r --filter @workbench/instance exec -- npx directus start",
-		"workbench:dev:client": "pnpm --filter @directus/app dev"
+		"workbench:dev:client": "pnpm --filter @directus/app dev",
+		"workbench:build:dev": "tsup --config tsup.dev.ts"
 	},
 	"engines": {
 		"node": ">=16.0.0",
@@ -47,11 +48,13 @@
 		"@typescript-eslint/eslint-plugin": "^5.30.5",
 		"@typescript-eslint/parser": "^5.30.5",
 		"axios": "^0.27.2",
+		"chalk": "^4.1.1",
 		"cross-env": "7.0.3",
 		"eslint": "^8.19.0",
 		"eslint-config-prettier": "^8.5.0",
 		"eslint-plugin-prettier": "^4.2.1",
 		"eslint-plugin-vue": "^9.2.0",
+		"fast-glob": "^3.2.11",
 		"git-filter-repo": "^0.0.30",
 		"globby": "^11.0.4",
 		"jest": "28.1.2",
@@ -61,10 +64,12 @@
 		"listr": "^0.14.3",
 		"lodash": "^4.17.21",
 		"prettier": "2.4.1",
+		"rimraf": "3.0.2",
 		"seedrandom": "^3.0.5",
 		"simple-git-hooks": "^2.8.0",
 		"supertest": "^6.2.3",
 		"ts-jest": "28.0.5",
+		"tsup": "^6.2.1",
 		"typescript": "^4.7.4",
 		"uuid": "^8.3.2"
 	}
