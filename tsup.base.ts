@@ -1,10 +1,9 @@
 /* eslint-disable no-console */
 import { defineConfig } from 'tsup';
 import fg from 'fast-glob';
-import { dirname, join, resolve } from 'path';
-import { existsSync, lstatSync, symlinkSync } from 'fs';
+import { join, resolve } from 'path';
+
 import rimraf from 'rimraf';
-import chalk from 'chalk';
 
 const tsupConfig: any[] = [];
 
@@ -73,29 +72,9 @@ for (const extension of [...serverExtensions, ...rawExtensions]) {
 			noExternal: [],
 			minify: true,
 			onSuccess: `cp -Rf ${distRoot}/* ${instanceExtensionsRoot}`,
-			external: [/knex/, /alasql/],
+			external: [/knex/],
 		})
 	);
 }
 
-// CLEANUP => DELETE ALL SYMLINKS IN APPROOT
-const appExtensions = await fg(join(applicationsRoot, clientExtensionsCollection, '*/index.ts'));
-for (const _l of appExtensions) {
-	if (lstatSync(dirname(_l)).isSymbolicLink()) {
-		const displayPath = dirname(_l).split('/').slice(-2).join('/');
-		console.log(`${chalk.red('REMOVING SYMLINK:')} ${displayPath}`);
-		rimraf.sync(dirname(_l));
-	}
-}
-
-for (const extension of clientExtensions) {
-	const { extensionName, extensionType } = getNameAndType(extension);
-	const appExtensionPath = join(applicationsRoot, extensionType, extensionName);
-	const exists = existsSync(appExtensionPath);
-	if (!exists) {
-		console.log(`${chalk.blue('ADDING SYMLINK:')} ${extensionType}/${extensionName}`);
-		symlinkSync(dirname(extension), appExtensionPath);
-	}
-}
-
-export default tsupConfig;
+export { tsupConfig, clientExtensions, getNameAndType, applicationsRoot, clientExtensionsCollection };
