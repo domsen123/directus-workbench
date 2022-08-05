@@ -22,3 +22,7 @@ TODO
 schema.yaml
 schema.json
 .*.swp
+
+/api
+/app
+/packages
