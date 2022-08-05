@@ -12,7 +12,27 @@ export default defineInterface({
 	relational: true,
 	component: Component,
 	options: ({ relations }) => {
-		const collection = relations.o2m?.collection;
-		return [];
+		return [
+			{
+				field: 'tableFields',
+				name: 'Add Fields',
+				meta: {
+					special: 'cast-json',
+					interface: 'list',
+					options: {
+						choices: [{ text: 'Add Fields', value: 'Add Fields' }],
+						fields: [
+							{
+								field: 'field_name',
+								name: 'field_name',
+								type: 'string',
+								meta: { field: 'field_name', width: 'half', type: 'string', interface: null },
+							},
+						],
+					},
+					width: 'half',
+				},
+			},
+		];
 	},
 });
