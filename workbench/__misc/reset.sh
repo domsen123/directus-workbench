@@ -10,3 +10,6 @@ rm -rf ./workbench/_instance/extensions/**/* && rm -rf app && rm -rf api && rm -
 git checkout main -- api && git rm -r --cached --ignore-unmatch api
 git checkout main -- app && git rm -r --cached --ignore-unmatch app
 git checkout main -- packages && git rm -r --cached --ignore-unmatch packages
+
+pnpm -r install
+pnpm -r --filter=\!@directus/app run build

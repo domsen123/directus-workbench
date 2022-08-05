@@ -16,7 +16,10 @@
 		"test:blackbox": "jest tests -c tests-blackbox/jest.config.js",
 		"test:blackbox:watch": "jest tests -c tests-blackbox/jest.config.js --watch",
 		"posttest:blackbox:watch": "ts-node --project ./tests-blackbox/tsconfig.json --transpile-only ./tests-blackbox/setup/teardown.ts",
-		"cli": "cross-env NODE_ENV=development SERVE_APP=false DOTENV_CONFIG_PATH=api/.env ts-node -r dotenv/config --script-mode --transpile-only api/src/cli/run.ts"
+		"cli": "cross-env NODE_ENV=development SERVE_APP=false DOTENV_CONFIG_PATH=api/.env ts-node -r dotenv/config --script-mode --transpile-only api/src/cli/run.ts",
+		"workbench:dev": "$_ run workbench:dev:server & $_ run workbench:dev:client",
+		"workbench:dev:server": "pnpm -r --filter @workbench/instance exec -- npx directus start",
+		"workbench:dev:client": "pnpm --filter @directus/app dev"
 	},
 	"engines": {
 		"node": ">=16.0.0",
